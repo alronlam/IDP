@@ -7,19 +7,18 @@ import Jama.Matrix;
 public class StateVector {
 
 	private ArrayList<Double> X;
-	private int size;
 	private int numFeatures;
 	private int featureSize;
 	private int stateVarsOfInterest;
 
 	public StateVector(int stateVarsOfInterest, int featureSize) {
 		this.stateVarsOfInterest = stateVarsOfInterest;
-		this.size = stateVarsOfInterest;
+
 		this.featureSize = featureSize;
 		this.numFeatures = 0;
 
 		X = new ArrayList<Double>();
-		for (int i = 0; i < size; i++)
+		for (int i = 0; i < stateVarsOfInterest; i++)
 			X.add(0.0);
 	}
 
@@ -61,7 +60,6 @@ public class StateVector {
 	public StateVector clone() {
 		StateVector clone = new StateVector();
 		clone.X = (ArrayList<Double>) X.clone();
-		clone.size = clone.size;
 		clone.numFeatures = numFeatures;
 		clone.featureSize = featureSize;
 		clone.stateVarsOfInterest = stateVarsOfInterest;
@@ -143,7 +141,7 @@ public class StateVector {
 	}
 
 	public int getTotalStateSize() {
-		return size + numFeatures * featureSize;
+		return X.size();
 	}
 
 	public ArrayList<Double> getX() {
@@ -155,14 +153,6 @@ public class StateVector {
 		double[][] x = m.getArray();
 		for (int i = 0; i < x.length; i++)
 			X.add(x[i][0]);
-	}
-
-	public int getSize() {
-		return size;
-	}
-
-	public void setSize(int size) {
-		this.size = size;
 	}
 
 	public int getNumFeatures() {
