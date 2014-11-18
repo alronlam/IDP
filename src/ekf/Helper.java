@@ -106,10 +106,22 @@ public class Helper {
 		// assumed as transposed:
 		double cphi = Math.cos(phi);
 		
-		double[][] out = {{	cphi * Math.sin(theta),
-							-Math.sin(theta),
-							cphi * Math.cos(theta)}};
+		double[][] out = {	{cphi * Math.sin(theta)},
+							{-Math.sin(theta)},
+							{cphi * Math.cos(theta)}};
 		
-		return new Matrix(out).transpose();
+		return new Matrix(out);
+	}
+	
+	public static Matrix inverseDepthToCartesian(IDPFeature f) {
+		// not sure if jama is 1-based or 0-based :))
+		
+		Matrix m = m_function(f.getAzimuth(), f.getElevation());
+		
+		double[][] out = {	{f.getX() + 1/f.getP() * m.get(0, 0)},
+							{f.getY() + 1/f.getP() * m.get(1, 0)},
+							{f.getZ() + 1/f.getP() * m.get(2, 0)}};
+		
+		return new Matrix(out);
 	}
 }
