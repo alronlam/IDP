@@ -95,7 +95,7 @@ public class CovarianceMatrix {
 				this.stateVarsOfInterest, P_old.getColumnDimension() - 1);
 
 		Matrix P_xvy = Helper.extractSubMatrix(P_old, 0, this.stateVarsOfInterest - 1, this.stateVarsOfInterest,
-				P_old.getColumnDimension());
+				P_old.getColumnDimension() - 1);
 
 		Matrix P_new = new Matrix(P_old.getRowDimension() + featureSize, P_old.getColumnDimension() + featureSize);
 
@@ -106,9 +106,12 @@ public class CovarianceMatrix {
 		P_new = Helper.setSubMatrixValues(P_new, P_y, this.stateVarsOfInterest, this.stateVarsOfInterest);
 
 		// Bottom row
+
 		P_new = Helper.setSubMatrixValues(P_new, dy_dxv.times(P_xv), P_old.getRowDimension(), 0);
-		P_new = Helper
-				.setSubMatrixValues(P_new, dy_dxv.times(P_xvy), P_old.getRowDimension(), this.stateVarsOfInterest);
+
+		if (numFeatures > 0) // only do this if there were previous features
+			P_new = Helper.setSubMatrixValues(P_new, dy_dxv.times(P_xvy), P_old.getRowDimension(),
+					this.stateVarsOfInterest);
 
 		Matrix botRight = dy_dxv.times(P_xv).times(dy_dxv.transpose())
 				.plus(dy_dhd.times(Padd).times(dy_dhd.transpose()));
@@ -116,8 +119,9 @@ public class CovarianceMatrix {
 
 		// Rightmost column
 		P_new = Helper.setSubMatrixValues(P_new, P_xv.times(dy_dxv.transpose()), 0, P_old.getColumnDimension());
-		P_new = Helper.setSubMatrixValues(P_new, P_yxv.times(dy_dxv.transpose()), this.stateVarsOfInterest,
-				P_old.getColumnDimension());
+		if (numFeatures > 0) // only do this if there were previous features
+			P_new = Helper.setSubMatrixValues(P_new, P_yxv.times(dy_dxv.transpose()), this.stateVarsOfInterest,
+					P_old.getColumnDimension());
 
 		this.set(P_new);
 
@@ -145,7 +149,7 @@ public class CovarianceMatrix {
 	/********** Getters **********/
 
 	public String toString() {
-		return P.toString();
+		return Helper.toStringArrayList(P);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -219,11 +223,18 @@ public class CovarianceMatrix {
 	}
 
 	public void set(Matrix pMatrix) {
-		for (int i = 0; i < P.size(); i++) {
-			for (int j = 0; j < P.get(i).size(); j++) {
-				P.get(i).set(j, pMatrix.get(i, j));
+
+		ArrayList<ArrayList<Double>> P_new = new ArrayList<ArrayList<Double>>();
+
+		for (int i = 0; i < pMatrix.getRowDimension(); i++) {
+			ArrayList<Double> row = new ArrayList<Double>();
+			for (int j = 0; j < pMatrix.getColumnDimension(); j++) {
+				row.add(pMatrix.get(i, j));
 			}
+			P_new.add(row);
 		}
+
+		this.P = P_new;
 	}
 
 	public void setVal(int row, int col, double val) {

@@ -58,10 +58,10 @@ public class DerivativeHelper {
 
 		Matrix _06x6 = Helper.createSameValuedMatrix(0, 6, 6);
 
-		Matrix dy_dxv = new Matrix(6, 6);
+		Matrix dy_dxv = new Matrix(6, 13);
 		dy_dxv = Helper.setSubMatrixValues(dy_dxv, dy_drw, 0, 0);
-		dy_dxv = Helper.setSubMatrixValues(dy_dxv, dy_dqwr, 3, 0);
-		dy_dxv = Helper.setSubMatrixValues(dy_dxv, _06x6, 7, 0);
+		dy_dxv = Helper.setSubMatrixValues(dy_dxv, dy_dqwr, 0, 3);
+		dy_dxv = Helper.setSubMatrixValues(dy_dxv, _06x6, 0, 7);
 
 		return dy_dxv;
 	}

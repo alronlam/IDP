@@ -37,6 +37,29 @@ public class EKFTests extends TestCase {
 		ekf = null;
 	}
 
+	public void testPredict() {
+
+		for (int i = 0; i < 5; i++) {
+			predict(ekf);
+		}
+	}
+
+	private void predict(EKF ekf) {
+		double vxP = random.nextGaussian();
+		double vyP = random.nextGaussian();
+		double vzP = random.nextGaussian();
+		PointTriple vP = new PointTriple(vxP, vyP, vzP);
+
+		double wxP = random.nextGaussian();
+		double wyP = random.nextGaussian();
+		double wzP = random.nextGaussian();
+		PointTriple wP = new PointTriple(wxP, wyP, wzP);
+
+		ekf.predict(vP, wP, 0.333);
+		System.out.println("After predicting with linear impulse " + vP + " and angular impulse " + wP + "\r\n");
+		System.out.println(ekf.getStateVector());
+	}
+
 	public void testAddFeature() {
 
 		// do some random prediction first
@@ -59,7 +82,13 @@ public class EKFTests extends TestCase {
 		log.append(ekf.getCovarianceMatrix() + "\r\n\n");
 
 		// add a few features
+
 		ekf.addFeature(5, 10, camera);
+
+		log.append(ekf.getStateVector() + "\r\n");
+		log.append(ekf.getCovarianceMatrix() + "\r\n\n");
+
+		ekf.addFeature(1, 5, camera);
 
 		log.append(ekf.getStateVector() + "\r\n");
 		log.append(ekf.getCovarianceMatrix() + "\r\n\n");

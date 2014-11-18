@@ -30,11 +30,37 @@ public class Helper {
 	}
 
 	public static Matrix extractSubMatrix(Matrix parentMatrix, int startRow, int endRow, int startCol, int endCol) {
+
+		if (startRow >= parentMatrix.getRowDimension() || startCol >= parentMatrix.getColumnDimension())
+			return new Matrix(0, 0);
+
 		double[][] sub = new double[endRow - startRow + 1][endCol - startCol + 1];
 		for (int i = startRow; i <= endRow; i++)
 			for (int j = startCol; j <= endCol; j++)
 				sub[i - startRow][j - startCol] = parentMatrix.get(i, j);
+
 		return new Matrix(sub);
+	}
+
+	public static String toStringDoubleArr(double[][] arr) {
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < arr.length; i++) {
+			for (int j = 0; j < arr[i].length; j++)
+				sb.append(arr[i][j] + " ");
+			sb.append("\n");
+		}
+		return sb.toString();
+	}
+
+	public static String toStringArrayList(ArrayList<ArrayList<Double>> arr) {
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < arr.size(); i++) {
+			for (int j = 0; j < arr.get(i).size(); j++) {
+				sb.append(String.format("%3.2f ", arr.get(i).get(j)));
+			}
+			sb.append("\r\n");
+		}
+		return sb.toString();
 	}
 
 	public static PointTriple extractXYZPosition(Matrix X) {
