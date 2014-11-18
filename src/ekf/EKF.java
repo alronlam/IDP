@@ -285,17 +285,4 @@ public class EKF {
 		return new Matrix(vrv);
 	}
 
-	// Creates some Jacobian matrix used when adding a new feature to the
-	// covariance matrix
-	private Matrix createJRMatrix(double displacementX, double displacementY) {
-		double[][] jr = { { 1, 0, -1 * displacementY }, { 0, 1, displacementX } };
-		return new Matrix(jr);
-	}
-
-	// Creates some Jacobian matrix used when adding a new feature to the
-	// covariance matrix
-	private Matrix createJZMatrix(double displacementX, double displacementY, double headingRadians) {
-		double[][] jz = { { Math.cos(headingRadians), -1 * displacementY }, { Math.sin(headingRadians), displacementX } };
-		return new Matrix(jz);
-	}
 }
