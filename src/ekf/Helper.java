@@ -101,5 +101,15 @@ public class Helper {
 
 		return new Matrix(arr);
 	}
-
+	
+	public static Matrix m_function(double theta, double phi) {
+		// assumed as transposed:
+		double cphi = Math.cos(phi);
+		
+		double[][] out = {{	cphi * Math.sin(theta),
+							-Math.sin(theta),
+							cphi * Math.cos(theta)}};
+		
+		return new Matrix(out).transpose();
+	}
 }
