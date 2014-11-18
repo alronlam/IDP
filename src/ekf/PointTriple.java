@@ -47,4 +47,7 @@ public class PointTriple {
 		return new PointTriple(x + other.x, y + other.y, z + other.z);
 	}
 
+	public String toString() {
+		return "(" + x + "," + y + "," + z + ")";
+	}
 }
