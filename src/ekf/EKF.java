@@ -1,7 +1,6 @@
 package ekf;
 
 import java.util.ArrayList;
-import java.util.Random;
 
 import Jama.Matrix;
 
@@ -20,6 +19,9 @@ public class EKF {
 	private Matrix jzMatrix;
 
 	/* Constants */
+	public static final int FEATURE_SIZE = 3;
+	public static final int STATE_VARS_OF_INTEREST = 13;
+
 	public static final double P_DIAGONAL_INITIAL = 0;
 	public static final double Q_NOISE = 0.1;
 
@@ -27,8 +29,8 @@ public class EKF {
 	public static final double VRV_HEADING_NOISE = Math.toRadians(1);
 
 	public EKF() {
-		X = createX();
-		P = createP();
+		X = createInitialX();
+		P = createInitialP();
 
 		jrMatrix = this.createJRMatrix(0, 0);
 		jzMatrix = this.createJZMatrix(0, 0, 0);
@@ -37,12 +39,6 @@ public class EKF {
 	/********** Getters **********/
 	public ArrayList<ArrayList<Double>> getP() {
 		return (ArrayList<ArrayList<Double>>) P.clone();
-	}
-
-	public DevicePose getCurrDevicePose() {
-		PointDouble deviceCoords = getDeviceCoords();
-		DevicePose pose = new DevicePose(deviceCoords.getX(), deviceCoords.getY(), 0, getHeadingDegrees());
-		return pose;
 	}
 
 	public ArrayList<Double> getX() {
@@ -65,14 +61,6 @@ public class EKF {
 		return point;
 	}
 
-	private double getHeadingDegrees() {
-		return Math.toDegrees(this.getHeadingRadians());
-	}
-
-	private double getHeadingRadians() {
-		return X.get(2);
-	}
-
 	public String getParameterConfigurations() {
 
 		StringBuilder sb = new StringBuilder();
@@ -84,8 +72,50 @@ public class EKF {
 		return sb.toString();
 	}
 
-	public String toString() {
-		return this.getCurrDevicePose().toString();
+	public PointTriple getCurrentXYZPosition() {
+		double x = X.get(0);
+		double y = X.get(1);
+		double z = X.get(2);
+
+		return new PointTriple(x, y, z);
+	}
+
+	public Quaternion getCurrentQuaternion() {
+		double x = X.get(3);
+		double y = X.get(4);
+		double z = X.get(5);
+		double r = X.get(6);
+
+		Quaternion quaternion = new Quaternion(x, y, z, r);
+		return quaternion;
+	}
+
+	public PointTriple getCurrentV() {
+		double x = X.get(7);
+		double y = X.get(8);
+		double z = X.get(9);
+
+		return new PointTriple(x, y, z);
+	}
+
+	public PointTriple getCurrentOmega() {
+		double x = X.get(10);
+		double y = X.get(11);
+		double z = X.get(12);
+
+		return new PointTriple(x, y, z);
+	}
+
+	public int getTotalStateSize() {
+		return STATE_VARS_OF_INTEREST + numFeatures * FEATURE_SIZE;
+	}
+
+	public int getStartingIndexInStateVector(int featureIndex) {
+		return STATE_VARS_OF_INTEREST + FEATURE_SIZE * featureIndex;
+	}
+
+	public double getHeadingRadians() {
+		return 0; // method stub
 	}
 
 	/********** INS Update **********/
@@ -363,22 +393,21 @@ public class EKF {
 	}
 
 	// Initializes the state vector
-	private ArrayList<Double> createX() {
+	private ArrayList<Double> createInitialX() {
 		ArrayList<Double> X = new ArrayList<Double>();
-		X.add(0.0); // Device X
-		X.add(0.0); // Devce Y
-		X.add(0.0); // Device Theta
-
+		for (int i = 0; i < STATE_VARS_OF_INTEREST; i++) {
+			X.add(0.0);
+		}
 		return X;
 	}
 
 	// Initializes the covariance matrix
-	private ArrayList<ArrayList<Double>> createP() {
+	private ArrayList<ArrayList<Double>> createInitialP() {
 		ArrayList<ArrayList<Double>> P = new ArrayList<ArrayList<Double>>();
 
-		for (int i = 0; i < 3; i++) {
+		for (int i = 0; i < STATE_VARS_OF_INTEREST; i++) {
 			ArrayList<Double> currRow = new ArrayList<Double>();
-			for (int j = 0; j < 3; j++) {
+			for (int j = 0; j < STATE_VARS_OF_INTEREST; j++) {
 				if (i != j)
 					currRow.add(0.0);
 				else
@@ -418,8 +447,6 @@ public class EKF {
 
 	// The measurement noise matrix
 	private Matrix createVRVMatrix(double distance) {
-		Random rand = new Random();
-
 		double[][] vrv = new double[2][2];
 		vrv[0][0] = distance * VRV_DISTANCE_VARIANCE;
 		vrv[1][1] = VRV_HEADING_NOISE;// Math.toRadians(2);
