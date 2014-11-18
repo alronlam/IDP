@@ -21,11 +21,11 @@ public class TestUtility {
 	}
 
 	public static String ekfPosition(EKF e) {
-		return e.getCurrentXYZPosition().getX() + ", " + e.getCurrentXYZPosition().getY();
+		return e.getDeviceCoords().getX() + ", " + e.getDeviceCoords().getY();
 	}
 
 	public static PointDouble getError(PointDouble t, EKF e) {
-		return new PointDouble(t.getX() - e.getCurrentXYZPosition().getX(), t.getY() - e.getCurrentXYZPosition().getY());
+		return new PointDouble(t.getX() - e.getDeviceCoords().getX(), t.getY() - e.getDeviceCoords().getY());
 	}
 
 	public static double randGaussian() {
