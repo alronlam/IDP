@@ -72,7 +72,7 @@ public class StateVector {
 	}
 
 	// Just converts the current state vector to a Matrix object
-	public Matrix getMatrix() {
+	public Matrix toMatrix() {
 		double[][] x = new double[X.size()][1];
 		for (int i = 0; i < X.size(); i++)
 			x[i][0] = X.get(i);

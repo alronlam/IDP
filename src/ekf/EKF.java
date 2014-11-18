@@ -127,7 +127,7 @@ public class EKF {
 		Matrix zMinusHMatrix = new Matrix(differenceVector);
 
 		/* Adjust state vector based on prediction */
-		Matrix xMatrix = X.getMatrix();
+		Matrix xMatrix = X.toMatrix();
 		xMatrix = xMatrix.plus(kalmanGainMatrix.times(zMinusHMatrix));
 
 		// re-populate the state vector based on the result
