@@ -7,13 +7,16 @@ import java.math.RoundingMode;
 import java.util.Random;
 
 import junit.framework.TestCase;
+import ekf.Camera;
 import ekf.EKF;
+import ekf.PointTriple;
 
 public class EKFTests extends TestCase {
 
 	private EKF ekf;
 	private final String TAG = "EKFTests";
 	private Random random;
+	private Camera camera;
 
 	// just for logging
 	private String root = "data";
@@ -22,6 +25,7 @@ public class EKFTests extends TestCase {
 	protected void setUp() throws Exception {
 		ekf = new EKF();
 		random = new Random();
+		camera = new Camera();
 		// Pre-condition. Should assert these first or else following test is
 		// invalid
 		// assertTrue(EKF.P_DIAGONAL_INITIAL == 0.1);
@@ -31,6 +35,37 @@ public class EKFTests extends TestCase {
 	@Override
 	protected void tearDown() throws Exception {
 		ekf = null;
+	}
+
+	public void testAddFeature() {
+
+		// do some random prediction first
+
+		double vxP = random.nextGaussian();
+		double vyP = random.nextGaussian();
+		double vzP = random.nextGaussian();
+		PointTriple vP = new PointTriple(vxP, vyP, vzP);
+
+		double wxP = random.nextGaussian();
+		double wyP = random.nextGaussian();
+		double wzP = random.nextGaussian();
+		PointTriple wP = new PointTriple(wxP, wyP, wzP);
+
+		ekf.predict(vP, wP, 0.333);
+
+		StringBuilder log = new StringBuilder();
+
+		log.append(ekf.getStateVector() + "\r\n");
+		log.append(ekf.getCovarianceMatrix() + "\r\n\n");
+
+		// add a few features
+		ekf.addFeature(5, 10, camera);
+
+		log.append(ekf.getStateVector() + "\r\n");
+		log.append(ekf.getCovarianceMatrix() + "\r\n\n");
+
+		logEntries(new File("AddFeature.txt"), log.toString());
+
 	}
 
 	private void logEntries(File file, String log) {

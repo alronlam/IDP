@@ -52,6 +52,14 @@ public class EKF {
 		return sb.toString();
 	}
 
+	public StateVector getStateVector() {
+		return X;
+	}
+
+	public CovarianceMatrix getCovarianceMatrix() {
+		return P;
+	}
+
 	public double getHeadingRadians() {
 		return 0; // method stub
 	}

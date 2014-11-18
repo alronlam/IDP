@@ -144,6 +144,10 @@ public class CovarianceMatrix {
 
 	/********** Getters **********/
 
+	public String toString() {
+		return P.toString();
+	}
+
 	@SuppressWarnings("unchecked")
 	public CovarianceMatrix clone() {
 		CovarianceMatrix clone = new CovarianceMatrix();

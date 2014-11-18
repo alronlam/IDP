@@ -56,6 +56,10 @@ public class StateVector {
 
 	/*** Getters ***/
 
+	public String toString() {
+		return X.toString();
+	}
+
 	@SuppressWarnings("unchecked")
 	public StateVector clone() {
 		StateVector clone = new StateVector();

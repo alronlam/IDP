@@ -90,7 +90,7 @@ public class DerivativeHelper {
 
 	public static Matrix dRq_times_a_by_dq(Quaternion q_wc, Matrix XYZ_c) {
 
-		Matrix dRq_times_a_by_dq = new Matrix(10, 10);
+		Matrix dRq_times_a_by_dq = new Matrix(3, 4);
 		Matrix dR_by_dq0_times_a = dR_by_dq0(q_wc).times(XYZ_c);
 		Matrix dR_by_dqx_times_a = dR_by_dqx(q_wc).times(XYZ_c);
 		Matrix dR_by_dqy_times_a = dR_by_dqy(q_wc).times(XYZ_c);
