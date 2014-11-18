@@ -35,6 +35,10 @@ public class PointTriple {
 		this.y = y;
 	}
 
+	public PointTriple getCopy() {
+		return new PointTriple(x, y, z);
+	}
+
 	public PointTriple times(double val) {
 		return new PointTriple(x * val, y * val, z * val);
 	}

@@ -31,6 +31,7 @@ public class EKF {
 
 	public static final double INITIAL_RHO = 0.1;
 	public static final double STDDEV_RHO = 0.5;
+	public static final double STDDEV_PXL = 1;
 
 	public static final double VRV_DISTANCE_VARIANCE = 0.1;
 	public static final double VRV_HEADING_NOISE = 0.1;
@@ -325,27 +326,30 @@ public class EKF {
 
 	// Method for adding a feature to the sate vector and covariance matrix.
 	public void addFeature(int u, int v) {
+		IDPFeature newFeature = FeatureInitializationHelper.createFeature(this.getCurrentXYZPosition(),
+				this.getCurrentQuaternion(), u, v, INITIAL_RHO);
 
-		IDPFeature newFeature = this.createFeature(this.getCurrentXYZPosition(), this.getCurrentQuaternion(), u, v);
+		addFeatureToX(newFeature);
+
+		this.P = FeatureInitializationHelper.createNewP(P, X, u, v, STDDEV_PXL, STDDEV_RHO);
 
 		numFeatures++;
 	}
 
-	private IDPFeature createFeature(PointTriple xyzPosition, Quaternion quaternion, int u, int v) {
+	private void addFeatureToX(IDPFeature newFeature) {
+		double x = newFeature.getX();
+		double y = newFeature.getY();
+		double z = newFeature.getZ();
+		double azimuth = newFeature.getAzimuth();
+		double elevation = newFeature.getElevation();
+		double p = newFeature.getP();
 
-		double x = xyzPosition.getX();
-		double y = xyzPosition.getY();
-		double z = xyzPosition.getZ();
-
-		Matrix rotationMatrix = Helper.quaternionToRotationMatrix(quaternion);
-		double nx = rotationMatrix.get(0, 0);
-		double ny = rotationMatrix.get(1, 0);
-		double nz = rotationMatrix.get(2, 0);
-
-		double azimuth = Math.atan2(nx, nz);
-		double elevation = Math.atan2(-ny, Math.sqrt(nx * nx + nz * nz));
-
-		return new IDPFeature(x, y, z, azimuth, elevation, INITIAL_RHO);
+		X.add(x);
+		X.add(y);
+		X.add(z);
+		X.add(azimuth);
+		X.add(elevation);
+		X.add(p);
 	}
 
 	/********** Methods for Creating Matrices **********/
