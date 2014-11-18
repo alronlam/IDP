@@ -23,6 +23,10 @@ public class StateVector {
 			X.add(0.0);
 	}
 
+	private StateVector() {
+		// empty constructor used in clone()
+	}
+
 	/*** Feature manipulation Methods ***/
 	public void addFeature(IDPFeature newFeature) {
 		double x = newFeature.getX();
@@ -52,6 +56,18 @@ public class StateVector {
 	}
 
 	/*** Getters ***/
+
+	@SuppressWarnings("unchecked")
+	public StateVector clone() {
+		StateVector clone = new StateVector();
+		clone.X = (ArrayList<Double>) X.clone();
+		clone.size = clone.size;
+		clone.numFeatures = numFeatures;
+		clone.featureSize = featureSize;
+		clone.stateVarsOfInterest = stateVarsOfInterest;
+
+		return clone;
+	}
 
 	public int getStartingIndexInStateVector(int featureIndex) {
 		return stateVarsOfInterest + featureSize * featureIndex;

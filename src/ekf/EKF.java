@@ -6,6 +6,7 @@ import Jama.Matrix;
 
 public class EKF {
 
+	private StateVector Xm1;
 	private StateVector X;
 	private ArrayList<ArrayList<Double>> P; // Covariance Matrix
 
@@ -70,6 +71,9 @@ public class EKF {
 	/********** INS Update **********/
 
 	public void predict(PointTriple linearImpulse, PointTriple angularImpulse, double deltaTime) {
+
+		Xm1 = X.clone();
+
 		PointTriple xyzPositionOld = X.getCurrentXYZPosition();
 		Quaternion quaternionOld = X.getCurrentQuaternion();
 		PointTriple vOld = X.getCurrentV();
