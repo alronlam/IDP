@@ -17,9 +17,10 @@ public class EKF {
 	public static final double P_DIAGONAL_INITIAL = 0;
 
 	// used for linear velocity sd. in m/s^2
-	public static final double SD_A_component_filter = 4;
+	public static final double SD_A_component_filter = 4; // in matlab code this is 0.007
 	// used for angular velocity sd. in rad/s^2
-	public static final double SD_alpha_component_filter = 6;
+	public static final double SD_alpha_component_filter = 6; // in matlab code this is 0.007
+	public static final double SD_IMAGE_NOISE = 1;
 
 	public static final double INITIAL_RHO = 0.1;
 	public static final double STDDEV_RHO = 0.5;
