@@ -89,10 +89,11 @@ public class StateVector {
 	}
 
 	public Quaternion getCurrentQuaternion() {
-		double x = X.get(3);
-		double y = X.get(4);
-		double z = X.get(5);
-		double r = X.get(6);
+
+		double r = X.get(3);
+		double x = X.get(4);
+		double y = X.get(5);
+		double z = X.get(6);
 
 		Quaternion quaternion = new Quaternion(x, y, z, r);
 		return quaternion;
@@ -122,10 +123,10 @@ public class StateVector {
 	}
 
 	public void setQuaternion(Quaternion q) {
-		X.set(3, q.getX());
-		X.set(4, q.getY());
-		X.set(5, q.getZ());
-		X.set(6, q.getR());
+		X.set(3, q.getR());
+		X.set(4, q.getX());
+		X.set(5, q.getY());
+		X.set(6, q.getZ());
 	}
 
 	public void setV(PointTriple newV) {
