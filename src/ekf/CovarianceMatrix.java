@@ -39,21 +39,22 @@ public class CovarianceMatrix {
 	}
 
 	/*** Feature manipulation Methods ***/
-	public void addFeature(StateVector Xv, double u, double v, double std_rho, double std_pxl) {
+	public void addFeature(StateVector Xv, int ud, int vd, double std_rho, double std_pxl, Camera camera) {
 
-		// temporary while there are no camera parameters here
-		double fku = 1;
-		double fkv = 1;
+		// temporary while i'm not sure how to initialize this
+		double fku = camera.f * camera.k1;
+		double fkv = camera.f * camera.k1;
 
 		Matrix R_wc = Helper.quaternionToRotationMatrix(Xv.getCurrentQuaternion());
 
 		// undistorted. temporarily just the same as u,v
-		double uu = u;
-		double vu = u;
+		Matrix undistortedUV = CameraHelper.undistort(ud, vd, camera);
+		double uu = undistortedUV.get(0, 0);
+		double vu = undistortedUV.get(1, 0);
 
-		double X_c = u;// -(U0-uu)/fku;
-		double Y_c = u;// -(V0-vu)/fkv;
-		double Z_c = u;// 1;
+		double X_c = (uu - camera.Cx) / fku;// -(U0-uu)/fku;
+		double Y_c = (vu - camera.Cy) / fkv;// -(V0-vu)/fkv;
+		double Z_c = 1;
 
 		Matrix XYZ_c = new Matrix(3, 1);
 		XYZ_c.set(0, 0, X_c);
@@ -65,6 +66,7 @@ public class CovarianceMatrix {
 		double Y_w = XYZ_w.get(1, 0);
 		double Z_w = XYZ_w.get(2, 0);
 
+		/* All the matrix pre-calculations */
 		Matrix dtheta_dgw = DerivativeHelper.dtheta_dgw(X_w, Z_w); // 3x4
 		Matrix dphi_dgw = DerivativeHelper.dphi_dgw(X_w, Y_w, Z_w);
 		Matrix dgw_dqwr = DerivativeHelper.dRq_times_a_by_dq(Xv.getCurrentQuaternion(), XYZ_c);
@@ -77,6 +79,14 @@ public class CovarianceMatrix {
 		Matrix dyprima_dgw = DerivativeHelper.dyprima_dgw(dtheta_dgw, dphi_dgw);
 		Matrix dgw_dgc = R_wc;
 		Matrix dgc_dhu = DerivativeHelper.dgc_dhu(fku, fkv);
+		Matrix dhu_dhd = CameraHelper.jacobianUndistort(camera, ud, vd);
+
+		Matrix dyprima_dhd = dyprima_dgw.times(dgw_dgc).times(dgc_dhu).times(dhu_dhd);
+		Matrix dy_dhd = DerivativeHelper.dy_dhd(dyprima_dhd);
+
+		Matrix Padd = DerivativeHelper.Padd(std_rho, std_pxl);
+
+		/* The actual covariance update */
 
 		numFeatures++;
 	}

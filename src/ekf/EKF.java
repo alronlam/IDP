@@ -161,12 +161,12 @@ public class EKF {
 	}
 
 	// Method for adding a feature to the sate vector and covariance matrix.
-	public void addFeature(int u, int v) {
+	public void addFeature(int ud, int vd, Camera camera) {
 		IDPFeature newFeature = FeatureInitializationHelper.createFeature(X.getCurrentXYZPosition(),
-				X.getCurrentQuaternion(), u, v, INITIAL_RHO);
+				X.getCurrentQuaternion(), ud, vd, INITIAL_RHO);
 
 		X.addFeature(newFeature);
-		P.addFeature(X, u, v, STDDEV_PXL, STDDEV_RHO);
+		P.addFeature(X, ud, vd, STDDEV_PXL, STDDEV_RHO, camera);
 	}
 
 	/********** Methods for Creating Matrices **********/

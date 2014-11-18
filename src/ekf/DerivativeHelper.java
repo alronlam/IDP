@@ -21,6 +21,19 @@ public class DerivativeHelper {
 		return new Matrix(arr);
 	}
 
+	public static Matrix dy_dhd(Matrix dyprima_dhd) {
+		Matrix _05x1 = Helper.createSameValuedMatrix(0, 5, 1);
+		Matrix _01x2 = Helper.createSameValuedMatrix(0, 1, 2);
+
+		Matrix dy_dhd = new Matrix(6, 3);
+		dy_dhd = Helper.setSubMatrixValues(dy_dhd, dyprima_dhd, 0, 0);
+		dy_dhd = Helper.setSubMatrixValues(dy_dhd, _05x1, 0, 2);
+		dy_dhd = Helper.setSubMatrixValues(dy_dhd, _01x2, 5, 0);
+		dy_dhd.set(5, 2, 1);
+
+		return dy_dhd;
+	}
+
 	public static Matrix dgc_dhu(double fku, double fkv) {
 		Matrix dgc_dhu = new Matrix(3, 2);
 		dgc_dhu.set(0, 0, 1 / fku);
@@ -133,6 +146,21 @@ public class DerivativeHelper {
 		double[][] arr = { { -2 * qz, -2 * q0, 2 * qx }, { 2 * q0, -2 * qz, 2 * qy }, { 2 * qx, 2 * qy, 2 * qz } };
 
 		return new Matrix(arr);
+	}
+
+	public static Matrix Padd(double std_rho, double std_pxl) {
+		Matrix Ri = Helper.createIdentityMatrix(2).times(std_pxl * std_pxl);
+		Matrix _02x1 = Helper.createSameValuedMatrix(0, 2, 1);
+		Matrix _01x2 = Helper.createSameValuedMatrix(0, 1, 2);
+
+		Matrix Padd = new Matrix(3, 3);
+
+		Padd = Helper.setSubMatrixValues(Padd, Ri, 0, 0);
+		Padd = Helper.setSubMatrixValues(Padd, _02x1, 0, 2);
+		Padd = Helper.setSubMatrixValues(Padd, _01x2, 2, 0);
+		Padd.set(2, 2, std_rho * std_rho);
+
+		return Padd;
 	}
 
 }
