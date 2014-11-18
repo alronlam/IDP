@@ -47,6 +47,14 @@ public class PointTriple {
 		return new PointTriple(x + other.x, y + other.y, z + other.z);
 	}
 
+	public PointTriple divide(double val) {
+		return new PointTriple(x / val, y / val, z / val);
+	}
+
+	public double getNorm() {
+		return Math.sqrt(x * x + y * y + z * z);
+	}
+
 	public String toString() {
 		return "(" + x + "," + y + "," + z + ")";
 	}

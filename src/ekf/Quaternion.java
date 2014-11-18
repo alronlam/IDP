@@ -6,6 +6,16 @@ public class Quaternion {
 	private double z;
 	private double r;
 
+	public Quaternion(PointTriple vector, double theta) {
+		r = Math.cos(theta / 2);
+
+		vector = vector.times(Math.sin(theta / 2)).divide(vector.getNorm());
+
+		x = vector.getX();
+		y = vector.getY();
+		z = vector.getZ();
+	}
+
 	public Quaternion(double x, double y, double z, double r) {
 		this.x = x;
 		this.y = y;

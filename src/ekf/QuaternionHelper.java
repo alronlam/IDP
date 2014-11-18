@@ -18,9 +18,18 @@ public class QuaternionHelper {
 		return new Matrix(arr);
 	}
 
-	public static Quaternion calculateQWT(PointTriple omega, double deltaTime) {
+	public static Quaternion calculateQWT(PointTriple w, double deltaTime) {
 		// VW::Quaternion qwt(omegaold * delta_t);
-		return new Quaternion(0, 0, 0, 0);
+
+		w = w.times(deltaTime);
+
+		double theta = w.getNorm();
+		if (theta < 1)// eps)
+			return new Quaternion(1, 0, 0, 0);
+		else {
+			PointTriple w_n = w.divide(theta);
+			return new Quaternion(w_n, theta);
+		}
 	}
 
 	public static Matrix dqomegadt_by_domega(PointTriple omega, double deltaTime) {
