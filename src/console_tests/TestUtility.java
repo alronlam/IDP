@@ -9,6 +9,7 @@ import ekf.PointDouble;
 
 public class TestUtility {
 	private static Random rand = new Random();
+
 	public static double round2Decimals(double value) {
 		return roundDecimals(value, 2);
 	}
@@ -18,13 +19,13 @@ public class TestUtility {
 		bd = bd.setScale(decimalPlaces, RoundingMode.HALF_UP);
 		return bd.doubleValue();
 	}
-	
+
 	public static String ekfPosition(EKF e) {
-		return e.getCurrDevicePose().get_xPos() + ", " + e.getCurrDevicePose().get_yPos();
+		return e.getCurrentXYZPosition().getX() + ", " + e.getCurrentXYZPosition().getY();
 	}
 
 	public static PointDouble getError(PointDouble t, EKF e) {
-		return new PointDouble(t.getX() - e.getCurrDevicePose().get_xPos(), t.getY() - e.getCurrDevicePose().get_yPos());
+		return new PointDouble(t.getX() - e.getCurrentXYZPosition().getX(), t.getY() - e.getCurrentXYZPosition().getY());
 	}
 
 	public static double randGaussian() {

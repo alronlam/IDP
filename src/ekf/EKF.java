@@ -23,10 +23,14 @@ public class EKF {
 	public static final int STATE_VARS_OF_INTEREST = 13;
 
 	public static final double P_DIAGONAL_INITIAL = 0;
-	public static final double Q_NOISE = 0.1;
+
+	// used for linear velocity sd. in m/s^2
+	public static final double SD_A_component_filter = 4;
+	// used for angular velocity sd. in rad/s^2
+	public static final double SD_alpha_component_filter = 6;
 
 	public static final double VRV_DISTANCE_VARIANCE = 0.1;
-	public static final double VRV_HEADING_NOISE = Math.toRadians(1);
+	public static final double VRV_HEADING_NOISE = 0.1;
 
 	public EKF() {
 		X = createInitialX();
@@ -65,9 +69,8 @@ public class EKF {
 
 		StringBuilder sb = new StringBuilder();
 		sb.append("P_DIAG_INIT=" + P_DIAGONAL_INITIAL + "\r\n");
-		sb.append("Q_NOISE=" + Q_NOISE + "\r\n");
-		sb.append("VRV_DISTANCE_VARIANCE=" + VRV_DISTANCE_VARIANCE + "\r\n");
-		sb.append("VRV_HEADING_NOISE=" + VRV_HEADING_NOISE + "\r\n");
+		sb.append(" SD_A_component_filter = " + SD_A_component_filter);
+		sb.append(" SD_alpha_component_filter = " + SD_alpha_component_filter);
 
 		return sb.toString();
 	}
@@ -118,50 +121,80 @@ public class EKF {
 		return 0; // method stub
 	}
 
+	/********** Setters **********/
+
+	private void setXYZPosition(PointTriple newXYZ) {
+		X.set(0, newXYZ.getX());
+		X.set(1, newXYZ.getY());
+		X.set(2, newXYZ.getZ());
+	}
+
+	private void setQuaternion(Quaternion q) {
+		X.set(3, q.getX());
+		X.set(4, q.getY());
+		X.set(5, q.getZ());
+		X.set(6, q.getR());
+	}
+
+	private void setV(PointTriple newV) {
+		X.set(7, newV.getX());
+		X.set(8, newV.getY());
+		X.set(9, newV.getZ());
+	}
+
+	private void setOmega(PointTriple newOmega) {
+		X.set(10, newOmega.getX());
+		X.set(11, newOmega.getY());
+		X.set(12, newOmega.getZ());
+	}
+
+	private void setPxx(Matrix matrix) {
+		for (int i = 0; i < matrix.getRowDimension(); i++) {
+			ArrayList<Double> row = P.get(i);
+			for (int j = 0; j < matrix.getColumnDimension(); j++) {
+				row.set(j, matrix.get(i, j));
+			}
+		}
+	}
+
 	/********** INS Update **********/
 
-	// Performs the state update depending on displacement in meters, and
-	// heading in degrees
-	public void predictFromINS(double displacement, double headingRadians) {
+	public void predict(PointTriple linearImpulse, PointTriple angularImpulse, double deltaTime) {
+		PointTriple xyzPositionOld = this.getCurrentXYZPosition();
+		Quaternion quaternionOld = this.getCurrentQuaternion();
+		PointTriple vOld = this.getCurrentV();
+		PointTriple omegaOld = this.getCurrentOmega();
 
-		// Initialization of variables
-		double displacementX = displacement * Math.cos(headingRadians);
-		double displacementY = displacement * Math.sin(headingRadians);
-		double displacementHeading = headingRadians - X.get(2);
+		// Not sure if correct, but this is what's written in MonoSLAM code
+		PointTriple xyzPositionNew = xyzPositionOld.plus(vOld.times(deltaTime));
+		Quaternion qwt = QuaternionHelper.calculateQWT(omegaOld, deltaTime);
+		Quaternion quaternionNew = quaternionOld.times(qwt);
+		PointTriple vNew = vOld.plus(linearImpulse);
+		PointTriple omegaNew = omegaOld.plus(angularImpulse);
 
-		// Update the state vector
-		double newX = X.get(0) + displacementX;
-		double newY = X.get(1) + displacementY;
+		/* Update the state vector according to predictions */
+		this.setXYZPosition(xyzPositionNew);
+		this.setQuaternion(quaternionNew);
+		this.setV(vNew);
+		this.setOmega(omegaNew);
 
-		X.set(0, newX);
-		X.set(1, newY);
-		X.set(2, headingRadians);
+		/* Update the covariance matrices based on this prediction */
+		Matrix A_Matrix = this.createA(vOld, omegaOld, deltaTime);
+		Matrix Q_Matrix = this.createQ(deltaTime, quaternionOld, omegaOld);
 
-		// Update the upper left 3x3 sub-covariance matrix
-		Matrix qMatrix = createQ(displacementX, displacementY, displacementHeading);
-
-		Matrix pPhiMatrix = this.extractPPhi();
-
-		Matrix aMatrix = createA(displacementX, displacementY); // Jacobian of
-																// Prediction
-																// Model
-
-		// pPhi = A * pPphi * A^T + Q
-		pPhiMatrix = aMatrix.times(pPhiMatrix).times(aMatrix.transpose()).plus(qMatrix);
-
-		for (int i = 0; i < pPhiMatrix.getRowDimension(); i++)
-			for (int j = 0; j < pPhiMatrix.getColumnDimension(); j++)
-				P.get(i).set(j, pPhiMatrix.get(i, j));
+		Matrix Pxx_Matrix = this.extractPxx();
+		Pxx_Matrix = A_Matrix.times(Pxx_Matrix).times(A_Matrix.transpose()).plus(Q_Matrix);
+		this.setPxx(Pxx_Matrix);
 
 		// Update the first 3 columns of P (device to feature correlation) P_ri
 		// = A * P_ri
 
 		for (int i = 0; i < numFeatures; i++) {
 			Matrix PriMatrix = extractPri(i);
-			PriMatrix = aMatrix.times(PriMatrix);
+			PriMatrix = A_Matrix.times(PriMatrix);
 
 			int targetStartRowIndex = 0;
-			int targetStartColIndex = 3 + i * 2;
+			int targetStartColIndex = this.getStartingIndexInStateVector(i);
 
 			for (int j = 0; j < PriMatrix.getRowDimension(); j++)
 				for (int k = 0; k < PriMatrix.getColumnDimension(); k++)
@@ -178,23 +211,17 @@ public class EKF {
 			for (int j = 0; j < PriMatrixTranspose.getRowDimension(); j++)
 				for (int k = 0; k < PriMatrixTranspose.getColumnDimension(); k++)
 					P.get(targetStartRowIndex + j).set(targetStartColIndex + k, PriMatrixTranspose.get(j, k));
-
 		}
-
-		// Update Jr and Jz matrices
-		jrMatrix = this.createJRMatrix(displacementX, displacementY);
-		jzMatrix = this.createJZMatrix(displacementX, displacementY, headingRadians);
-
 	}
 
 	private Matrix extractPri(int index) {
-		int startRowIndex = 3 + index * 2;
+		int startIndex = STATE_VARS_OF_INTEREST + index * FEATURE_SIZE;
 
-		return this.extractSubMatrix(0, 2, startRowIndex, startRowIndex + 1);
+		return this.extractSubMatrix(0, STATE_VARS_OF_INTEREST, startIndex, startIndex + FEATURE_SIZE - 1);
 	}
 
-	private Matrix extractPPhi() {
-		return this.extractSubMatrix(0, 2, 0, 2);
+	private Matrix extractPxx() {
+		return this.extractSubMatrix(0, STATE_VARS_OF_INTEREST - 1, 0, STATE_VARS_OF_INTEREST - 1);
 	}
 
 	private Matrix extractSubMatrix(int startRow, int endRow, int startCol, int endCol) {
@@ -303,7 +330,7 @@ public class EKF {
 		// add to covariance matrix
 		// add 2 rows, then add two columns at the end
 
-		Matrix pPhiMatrix = this.extractPPhi();
+		Matrix pPhiMatrix = this.extractPxx();
 
 		ArrayList<Matrix> toAdd = new ArrayList<Matrix>();
 
@@ -419,30 +446,72 @@ public class EKF {
 		return P;
 	}
 
-	// Returns the Jacobian matrix A based on the given deltaX and deltaY
-	private Matrix createA(double deltaX, double deltaY) {
-		double[][] A = { { 1, 0, -1 * deltaY }, // rightmost 0 is to be replaced
-												// by - delta y
-				{ 0, 1, deltaX }, // rightmost 0 is to be replaced by delta x
-				{ 0, 0, 1 } };
+	/** Creates the Jacobian for the Process Model **/
+	public Matrix createA(PointTriple linearV, PointTriple angularV, double deltaTime) {
+		Matrix A_Matrix = new Matrix(STATE_VARS_OF_INTEREST, STATE_VARS_OF_INTEREST);
 
-		return new Matrix(A);
+		/* Initilize all the Identity sub-matrices */
+		Matrix _3x3Identity = Helper.createSameValuedMatrix(1, 3, 3);
+		A_Matrix = Helper.setSubMatrixValues(A_Matrix, _3x3Identity, 0, 0);
+		A_Matrix = Helper.setSubMatrixValues(A_Matrix, _3x3Identity, 7, 7);
+		A_Matrix = Helper.setSubMatrixValues(A_Matrix, _3x3Identity, 10, 10);
+
+		/* Initialize 3x3 deltaTime */
+		Matrix deltaTimeMatrix = Helper.createSameValuedMatrix(deltaTime, 3, 3);
+		A_Matrix = Helper.setSubMatrixValues(A_Matrix, deltaTimeMatrix, 0, 7);
+
+		/* Initialize 4x4 dqnew_by_domega */
+		Quaternion qwt = QuaternionHelper.calculateQWT(this.getCurrentOmega(), deltaTime);
+		Matrix dqnew_by_dq = QuaternionHelper.dq3_by_dq2(qwt);
+		A_Matrix = Helper.setSubMatrixValues(A_Matrix, dqnew_by_dq, 3, 3);
+
+		/* Initialize 4x3 dqnew_by_domega = d(q x qwt)_by_dqwt . dqwt_by_domega */
+		PointTriple omegaOld = this.getCurrentOmega();
+		Matrix dqnew_by_domega = QuaternionHelper.dq3_by_dq1(this.getCurrentQuaternion()).times(
+				QuaternionHelper.dqomegadt_by_domega(omegaOld, deltaTime));
+		A_Matrix = Helper.setSubMatrixValues(A_Matrix, dqnew_by_domega, 3, 10);
+
+		return A_Matrix;
 	}
 
-	// Returns the Process Noise Q based on the given deltaX and deltaY, and
-	// deltaT in radians
-	private Matrix createQ(double dX, double dY, double dT) {
-		double c = Q_NOISE; // will change this accdg to trial and error (accdg
-		// // // to SLAM for dummies)
-		// double[][] Q = { { c * dX * dX, c * dX * dY, c * dX * dT }, { c * dY
-		// * dX, c * dY * dY, c * dY * dT },
-		// { c * dT * dX, c * dT * dY, c * dT * dT } };
+	public Matrix createQ(double deltaTime, Quaternion qold, PointTriple omegaOld) {
+		Matrix Pnn_Matrix = this.createPnn(deltaTime);
+		Matrix dxnew_by_dn = this.create_dxnew_by_dn(deltaTime, qold, omegaOld);
 
-		// double[][] Q = { { dX * dX, 0, 0 }, { 0, dY * dY, 0 }, { 0, 0, dT *
-		// dT } };
+		Matrix Q_Matrix = dxnew_by_dn.times(Pnn_Matrix).times(dxnew_by_dn.transpose());
 
-		double[][] Q = { { c * dX * dX, 0, 0 }, { 0, c * dY * dY, 0 }, { 0, 0, c * dT * dT } };
-		return new Matrix(Q);
+		return Q_Matrix;
+	}
+
+	public Matrix create_dxnew_by_dn(double deltaTime, Quaternion qOld, PointTriple omegaOld) {
+		Matrix deltaTimeMatrix3x3 = Helper.createSameValuedMatrix(deltaTime, 3, 3);
+		Matrix identity3x3 = Helper.createSameValuedMatrix(1, 3, 3);
+		Matrix dqnew_by_domega = QuaternionHelper.dq3_by_dq1(qOld).times(
+				QuaternionHelper.dqomegadt_by_domega(omegaOld, deltaTime));
+
+		Matrix dxnew_by_dn_matrix = new Matrix(13, 6);
+		dxnew_by_dn_matrix = Helper.setSubMatrixValues(dxnew_by_dn_matrix, deltaTimeMatrix3x3, 0, 0);
+		dxnew_by_dn_matrix = Helper.setSubMatrixValues(dxnew_by_dn_matrix, identity3x3, 7, 0);
+		dxnew_by_dn_matrix = Helper.setSubMatrixValues(dxnew_by_dn_matrix, identity3x3, 10, 3);
+		dxnew_by_dn_matrix = Helper.setSubMatrixValues(dxnew_by_dn_matrix, dqnew_by_domega, 3, 3);
+
+		return dxnew_by_dn_matrix;
+	}
+
+	public Matrix createPnn(double deltaTime) {
+		double LINEAR_VELOCITY_NOISE_VARIANCE = SD_A_component_filter * SD_A_component_filter * deltaTime * deltaTime;
+		double ANGULAR_VELOCITY_NOISE_VARIANCE = SD_alpha_component_filter * SD_alpha_component_filter * deltaTime
+				* deltaTime;
+
+		double[][] pnnArr = new double[6][6];
+
+		for (int i = 0; i < 3; i++)
+			pnnArr[i][i] = LINEAR_VELOCITY_NOISE_VARIANCE;
+
+		for (int i = 3; i < 6; i++)
+			pnnArr[i][i] = ANGULAR_VELOCITY_NOISE_VARIANCE;
+
+		return new Matrix(pnnArr);
 	}
 
 	// The measurement noise matrix
