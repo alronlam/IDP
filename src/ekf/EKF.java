@@ -29,6 +29,9 @@ public class EKF {
 	// used for angular velocity sd. in rad/s^2
 	public static final double SD_alpha_component_filter = 6;
 
+	public static final double INITIAL_RHO = 0.1;
+	public static final double STDDEV_RHO = 0.5;
+
 	public static final double VRV_DISTANCE_VARIANCE = 0.1;
 	public static final double VRV_HEADING_NOISE = 0.1;
 
@@ -321,70 +324,28 @@ public class EKF {
 	}
 
 	// Method for adding a feature to the sate vector and covariance matrix.
-	public void addFeature(double x, double y) {
+	public void addFeature(int u, int v) {
 
-		// add to state vector
-		X.add(x);
-		X.add(y);
-
-		// add to covariance matrix
-		// add 2 rows, then add two columns at the end
-
-		Matrix pPhiMatrix = this.extractPxx();
-
-		ArrayList<Matrix> toAdd = new ArrayList<Matrix>();
-
-		// P^phi * Jxr^T
-		Matrix lowerLeftMatrix = pPhiMatrix.times(jrMatrix.transpose()).transpose();
-
-		toAdd.add(lowerLeftMatrix);
-
-		// numFeatures still holds the number of features not counting this new
-		// feature to be added
-		for (int i = 0; i < numFeatures; i++) {
-			// extract the sub-matrix above the new matrix's location
-			Matrix subMatrix = this.extractSubMatrix(0, 2, 3 + i * 2, 4 + i * 2);
-			Matrix currMatrix = jrMatrix.times(subMatrix);
-			toAdd.add(currMatrix);
-		}
-
-		// Create vrvMatrix
-		PointDouble deviceCoords = this.getDeviceCoords();
-		PointDouble featureCoords = new PointDouble(x, y);
-		double distance = deviceCoords.computeDistanceTo(featureCoords);
-		Matrix vrvMatrix = createVRVMatrix(distance);
-
-		Matrix lowerRightMatrix = jrMatrix.times(pPhiMatrix).times(jrMatrix.transpose())
-				.plus(jzMatrix.times(vrvMatrix).times(jzMatrix.transpose()));
-		toAdd.add(lowerRightMatrix);
-
-		// This part adds the last 2 rows
-		for (int i = 0; i < 2; i++) {
-			ArrayList<Double> currRow = new ArrayList<Double>();
-
-			for (Matrix matrix : toAdd) {
-				for (int j = 0; j < matrix.getColumnDimension(); j++)
-					currRow.add(matrix.get(i, j));
-			}
-
-			P.add(currRow);
-		}
-
-		// This part adds the new 2 columns
-		// Do not include the last entry in toAdd (the lower right matrix)
-		// because you're not going to transpose it!
-		for (int i = 0, row = 0; i < toAdd.size() - 1; i++) {
-			Matrix transpose = toAdd.get(i).transpose();
-
-			for (int j = 0; j < transpose.getRowDimension(); j++) {
-				for (int k = 0; k < transpose.getColumnDimension(); k++) {
-					P.get(row).add(transpose.get(j, k));
-				}
-				row++;
-			}
-		}
+		IDPFeature newFeature = this.createFeature(this.getCurrentXYZPosition(), this.getCurrentQuaternion(), u, v);
 
 		numFeatures++;
+	}
+
+	private IDPFeature createFeature(PointTriple xyzPosition, Quaternion quaternion, int u, int v) {
+
+		double x = xyzPosition.getX();
+		double y = xyzPosition.getY();
+		double z = xyzPosition.getZ();
+
+		Matrix rotationMatrix = Helper.quaternionToRotationMatrix(quaternion);
+		double nx = rotationMatrix.get(0, 0);
+		double ny = rotationMatrix.get(1, 0);
+		double nz = rotationMatrix.get(2, 0);
+
+		double azimuth = Math.atan2(nx, nz);
+		double elevation = Math.atan2(-ny, Math.sqrt(nx * nx + nz * nz));
+
+		return new IDPFeature(x, y, z, azimuth, elevation, INITIAL_RHO);
 	}
 
 	/********** Methods for Creating Matrices **********/

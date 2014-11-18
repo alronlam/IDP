@@ -88,4 +88,18 @@ public class Helper {
 
 		return parentMatrix;
 	}
+
+	public static Matrix quaternionToRotationMatrix(Quaternion quaternion) {
+		double x = quaternion.getX();
+		double y = quaternion.getY();
+		double z = quaternion.getZ();
+		double r = quaternion.getR();
+
+		double[][] arr = { { r * r + x * x - y * y - z * z, 2 * (x * y - r * z), 2 * (z * x + r * y) },
+				{ 2 * (x * y + r * z), r * r - x * x + y * y - z * z, 2 * (y * z - r * x) },
+				{ 2 * (z * x - r * y), 2 * (y * z + r * x), r * r - x * x - y * y + z * z } };
+
+		return new Matrix(arr);
+	}
+
 }
