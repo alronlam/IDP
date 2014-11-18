@@ -16,11 +16,11 @@ public class EKF {
 	public static final double P_DIAGONAL_INITIAL = 0;
 
 	// used for linear velocity sd. in m/s^2
-	public static final double SD_A_component_filter = 4; // in matlab code this
-															// is 0.007
+	// in matlab code this is 0.007
+	public static final double SD_A_component_filter = 4;
 	// used for angular velocity sd. in rad/s^2
-	public static final double SD_alpha_component_filter = 6; // in matlab code
-																// this is 0.007
+	// in matlab codethis is 0.007
+	public static final double SD_alpha_component_filter = 6;
 	public static final double SD_IMAGE_NOISE = 1;
 
 	public static final double INITIAL_RHO = 0.1;
@@ -152,8 +152,9 @@ public class EKF {
 		this.updateFromReobservedFeatureThroughDistanceHeading(featureIndex, observedDistance, observedHeading);
 	}
 
-	// Method for deleting a feature. Includes removing the feature from the
-	// state vector and covariance matrix.
+	// Method for deleting a feature.
+	// Includes removing the feature from the state vector and covariance
+	// matrix.
 	public void deleteFeature(int featureIndex) {
 		X.deleteFeature(featureIndex);
 		P.deleteFeature(featureIndex);

@@ -41,6 +41,43 @@ public class CovarianceMatrix {
 	/*** Feature manipulation Methods ***/
 	public void addFeature(StateVector Xv, double u, double v, double std_rho, double std_pxl) {
 
+		// temporary while there are no camera parameters here
+		double fku = 1;
+		double fkv = 1;
+
+		Matrix R_wc = Helper.quaternionToRotationMatrix(Xv.getCurrentQuaternion());
+
+		// undistorted. temporarily just the same as u,v
+		double uu = u;
+		double vu = u;
+
+		double X_c = u;// -(U0-uu)/fku;
+		double Y_c = u;// -(V0-vu)/fkv;
+		double Z_c = u;// 1;
+
+		Matrix XYZ_c = new Matrix(3, 1);
+		XYZ_c.set(0, 0, X_c);
+		XYZ_c.set(1, 0, Y_c);
+		XYZ_c.set(2, 0, Z_c);
+
+		Matrix XYZ_w = R_wc.times(XYZ_c);
+		double X_w = XYZ_w.get(0, 0);
+		double Y_w = XYZ_w.get(1, 0);
+		double Z_w = XYZ_w.get(2, 0);
+
+		Matrix dtheta_dgw = DerivativeHelper.dtheta_dgw(X_w, Z_w); // 3x4
+		Matrix dphi_dgw = DerivativeHelper.dphi_dgw(X_w, Y_w, Z_w);
+		Matrix dgw_dqwr = DerivativeHelper.dRq_times_a_by_dq(Xv.getCurrentQuaternion(), XYZ_c);
+
+		Matrix dtheta_dqwr = dtheta_dgw.times(dgw_dqwr);
+		Matrix dphi_dqwr = dphi_dgw.times(dgw_dqwr);
+		Matrix dy_dqwr = DerivativeHelper.dy_dqwr(dtheta_dqwr, dphi_dqwr);
+		Matrix dy_drw = DerivativeHelper.dy_drw();
+		Matrix dy_dxv = DerivativeHelper.dy_dxv(dy_drw, dy_dqwr);
+		Matrix dyprima_dgw = DerivativeHelper.dyprima_dgw(dtheta_dgw, dphi_dgw);
+		Matrix dgw_dgc = R_wc;
+		Matrix dgc_dhu = DerivativeHelper.dgc_dhu(fku, fkv);
+
 		numFeatures++;
 	}
 

@@ -80,6 +80,13 @@ public class Helper {
 		return new Matrix(matrixArr);
 	}
 
+	public static Matrix createIdentityMatrix(int size) {
+		Matrix identity = new Matrix(size, size);
+		for (int i = 0; i < size; i++)
+			identity.set(i, i, 1);
+		return identity;
+	}
+
 	public static Matrix setSubMatrixValues(Matrix parentMatrix, Matrix newValues, int startRow, int startCol) {
 
 		for (int i = startRow; i < newValues.getRowDimension(); i++)
@@ -101,27 +108,24 @@ public class Helper {
 
 		return new Matrix(arr);
 	}
-	
+
 	public static Matrix m_function(double theta, double phi) {
 		// assumed as transposed:
 		double cphi = Math.cos(phi);
-		
-		double[][] out = {	{cphi * Math.sin(theta)},
-							{-Math.sin(theta)},
-							{cphi * Math.cos(theta)}};
-		
+
+		double[][] out = { { cphi * Math.sin(theta) }, { -Math.sin(theta) }, { cphi * Math.cos(theta) } };
+
 		return new Matrix(out);
 	}
-	
+
 	public static Matrix inverseDepthToCartesian(IDPFeature f) {
 		// not sure if jama is 1-based or 0-based :))
-		
+
 		Matrix m = m_function(f.getAzimuth(), f.getElevation());
-		
-		double[][] out = {	{f.getX() + 1/f.getP() * m.get(0, 0)},
-							{f.getY() + 1/f.getP() * m.get(1, 0)},
-							{f.getZ() + 1/f.getP() * m.get(2, 0)}};
-		
+
+		double[][] out = { { f.getX() + 1 / f.getP() * m.get(0, 0) }, { f.getY() + 1 / f.getP() * m.get(1, 0) },
+				{ f.getZ() + 1 / f.getP() * m.get(2, 0) } };
+
 		return new Matrix(out);
 	}
 }
