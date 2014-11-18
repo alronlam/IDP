@@ -87,6 +87,41 @@ public class CovarianceMatrix {
 		Matrix Padd = DerivativeHelper.Padd(std_rho, std_pxl);
 
 		/* The actual covariance update */
+		Matrix P_old = this.toMatrix();
+		Matrix P_xv = Helper.extractSubMatrix(P_old, 0, this.stateVarsOfInterest - 1, 0, this.stateVarsOfInterest - 1);
+
+		Matrix P_yxv = Helper.extractSubMatrix(P_old, this.stateVarsOfInterest, P_old.getRowDimension() - 1, 0,
+				this.stateVarsOfInterest - 1);
+
+		Matrix P_y = Helper.extractSubMatrix(P_old, this.stateVarsOfInterest, P_old.getRowDimension() - 1,
+				this.stateVarsOfInterest, P_old.getColumnDimension() - 1);
+
+		Matrix P_xvy = Helper.extractSubMatrix(P_old, 0, this.stateVarsOfInterest - 1, this.stateVarsOfInterest,
+				P_old.getColumnDimension());
+
+		Matrix P_new = new Matrix(P_old.getRowDimension() + featureSize, P_old.getColumnDimension() + featureSize);
+
+		// Copy the old values
+		P_new = Helper.setSubMatrixValues(P_new, P_xv, 0, 0);
+		P_new = Helper.setSubMatrixValues(P_new, P_xvy, 0, this.stateVarsOfInterest);
+		P_new = Helper.setSubMatrixValues(P_new, P_yxv, this.stateVarsOfInterest, 0);
+		P_new = Helper.setSubMatrixValues(P_new, P_y, this.stateVarsOfInterest, this.stateVarsOfInterest);
+
+		// Bottom row
+		P_new = Helper.setSubMatrixValues(P_new, dy_dxv.times(P_xv), P_old.getRowDimension(), 0);
+		P_new = Helper
+				.setSubMatrixValues(P_new, dy_dxv.times(P_xvy), P_old.getRowDimension(), this.stateVarsOfInterest);
+
+		Matrix botRight = dy_dxv.times(P_xv).times(dy_dxv.transpose())
+				.plus(dy_dhd.times(Padd).times(dy_dhd.transpose()));
+		P_new = Helper.setSubMatrixValues(P_new, botRight, P_old.getRowDimension(), P_old.getColumnDimension());
+
+		// Rightmost column
+		P_new = Helper.setSubMatrixValues(P_new, P_xv.times(dy_dxv.transpose()), 0, P_old.getColumnDimension());
+		P_new = Helper.setSubMatrixValues(P_new, P_yxv.times(dy_dxv.transpose()), this.stateVarsOfInterest,
+				P_old.getColumnDimension());
+
+		this.set(P_new);
 
 		numFeatures++;
 	}
