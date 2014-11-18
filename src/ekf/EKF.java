@@ -215,7 +215,7 @@ public class EKF {
 		Matrix A_Matrix = new Matrix(STATE_VARS_OF_INTEREST, STATE_VARS_OF_INTEREST);
 
 		/* Initilize all the Identity sub-matrices */
-		Matrix _3x3Identity = Helper.createSameValuedMatrix(1, 3, 3);
+		Matrix _3x3Identity = Helper.createIdentityMatrix(3);
 		A_Matrix = Helper.setSubMatrixValues(A_Matrix, _3x3Identity, 0, 0);
 		A_Matrix = Helper.setSubMatrixValues(A_Matrix, _3x3Identity, 7, 7);
 		A_Matrix = Helper.setSubMatrixValues(A_Matrix, _3x3Identity, 10, 10);
@@ -249,7 +249,7 @@ public class EKF {
 
 	public Matrix create_dxnew_by_dn(double deltaTime, Quaternion qOld, PointTriple omegaOld) {
 		Matrix deltaTimeMatrix3x3 = Helper.createSameValuedMatrix(deltaTime, 3, 3);
-		Matrix identity3x3 = Helper.createSameValuedMatrix(1, 3, 3);
+		Matrix identity3x3 = Helper.createIdentityMatrix(3);
 		Matrix dqnew_by_domega = QuaternionHelper.dq3_by_dq1(qOld).times(
 				QuaternionHelper.dqomegadt_by_domega(omegaOld, deltaTime));
 
