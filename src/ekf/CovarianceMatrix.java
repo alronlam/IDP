@@ -179,7 +179,7 @@ public class CovarianceMatrix {
 	public Matrix extractPri(int index) {
 		int startIndex = stateVarsOfInterest + index * featureSize;
 
-		return this.extractSubMatrix(0, stateVarsOfInterest, startIndex, startIndex + featureSize - 1);
+		return this.extractSubMatrix(0, stateVarsOfInterest - 1, startIndex, startIndex + featureSize - 1);
 	}
 
 	public Matrix extractPxx() {
@@ -218,7 +218,7 @@ public class CovarianceMatrix {
 
 			for (int j = 0; j < PriMatrixTranspose.getRowDimension(); j++)
 				for (int k = 0; k < PriMatrixTranspose.getColumnDimension(); k++)
-					P.get(targetStartRowIndex + j).set(targetStartColIndex + k, PriMatrix.get(j, k));
+					P.get(targetStartRowIndex + j).set(targetStartColIndex + k, PriMatrixTranspose.get(j, k));
 		}
 	}
 

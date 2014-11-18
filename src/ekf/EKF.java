@@ -10,7 +10,7 @@ public class EKF {
 	private CovarianceMatrix P;
 
 	/* Constants */
-	public static final int FEATURE_SIZE = 3;
+	public static final int FEATURE_SIZE = 6;
 	public static final int STATE_VARS_OF_INTEREST = 13;
 
 	public static final double P_DIAGONAL_INITIAL = 0;

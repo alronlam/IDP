@@ -40,11 +40,11 @@ public class EKFTests extends TestCase {
 	public void testPredict() {
 
 		for (int i = 0; i < 5; i++) {
-			predict(ekf);
+			predict(ekf, true);
 		}
 	}
 
-	private void predict(EKF ekf) {
+	private void predict(EKF ekf, boolean log) {
 		double vxP = random.nextGaussian();
 		double vyP = random.nextGaussian();
 		double vzP = random.nextGaussian();
@@ -56,40 +56,30 @@ public class EKFTests extends TestCase {
 		PointTriple wP = new PointTriple(wxP, wyP, wzP);
 
 		ekf.predict(vP, wP, 0.333);
-		System.out.println("After predicting with linear impulse " + vP + " and angular impulse " + wP + "\r\n");
-		System.out.println(ekf.getStateVector());
+		if (log) {
+			System.out.println("After predicting with linear impulse " + vP + " and angular impulse " + wP + "\r\n");
+			System.out.println(ekf.getStateVector());
+		}
 	}
 
 	public void testAddFeature() {
 
 		// do some random prediction first
 
-		double vxP = random.nextGaussian();
-		double vyP = random.nextGaussian();
-		double vzP = random.nextGaussian();
-		PointTriple vP = new PointTriple(vxP, vyP, vzP);
-
-		double wxP = random.nextGaussian();
-		double wyP = random.nextGaussian();
-		double wzP = random.nextGaussian();
-		PointTriple wP = new PointTriple(wxP, wyP, wzP);
-
-		ekf.predict(vP, wP, 0.333);
-
 		StringBuilder log = new StringBuilder();
 
-		log.append(ekf.getStateVector() + "\r\n");
-		log.append(ekf.getCovarianceMatrix() + "\r\n\n");
-
-		// add a few features
-
+		predict(ekf, false);
 		ekf.addFeature(5, 10, camera);
-
 		log.append(ekf.getStateVector() + "\r\n");
 		log.append(ekf.getCovarianceMatrix() + "\r\n\n");
 
+		predict(ekf, false);
 		ekf.addFeature(1, 5, camera);
+		log.append(ekf.getStateVector() + "\r\n");
+		log.append(ekf.getCovarianceMatrix() + "\r\n\n");
 
+		predict(ekf, false);
+		ekf.addFeature(6, 3, camera);
 		log.append(ekf.getStateVector() + "\r\n");
 		log.append(ekf.getCovarianceMatrix() + "\r\n\n");
 
