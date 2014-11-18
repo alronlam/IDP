@@ -1,7 +1,5 @@
 package ekf;
 
-import java.util.ArrayList;
-
 import Jama.Matrix;
 
 public class FeatureInitializationHelper {
@@ -22,13 +20,6 @@ public class FeatureInitializationHelper {
 		double elevation = Math.atan2(-ny, Math.sqrt(nx * nx + nz * nz));
 
 		return new IDPFeature(x, y, z, azimuth, elevation, initialRho);
-	}
-
-	public static ArrayList<ArrayList<Double>> createNewP(ArrayList<ArrayList<Double>> oldP, StateVector Xv, double u,
-			double v, double std_rho, double std_pxl) {
-		ArrayList<ArrayList<Double>> newP = (ArrayList<ArrayList<Double>>) oldP.clone();
-
-		return newP;
 	}
 
 }

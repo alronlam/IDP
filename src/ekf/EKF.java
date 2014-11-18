@@ -1,14 +1,13 @@
 package ekf;
 
-import java.util.ArrayList;
-
 import Jama.Matrix;
 
 public class EKF {
 
 	private StateVector Xm1;
 	private StateVector X;
-	private ArrayList<ArrayList<Double>> P; // Covariance Matrix
+	private CovarianceMatrix Pm1;
+	private CovarianceMatrix P;
 
 	/* Constants */
 	public static final int FEATURE_SIZE = 3;
@@ -17,9 +16,11 @@ public class EKF {
 	public static final double P_DIAGONAL_INITIAL = 0;
 
 	// used for linear velocity sd. in m/s^2
-	public static final double SD_A_component_filter = 4; // in matlab code this is 0.007
+	public static final double SD_A_component_filter = 4; // in matlab code this
+															// is 0.007
 	// used for angular velocity sd. in rad/s^2
-	public static final double SD_alpha_component_filter = 6; // in matlab code this is 0.007
+	public static final double SD_alpha_component_filter = 6; // in matlab code
+																// this is 0.007
 	public static final double SD_IMAGE_NOISE = 1;
 
 	public static final double INITIAL_RHO = 0.1;
@@ -35,9 +36,6 @@ public class EKF {
 	}
 
 	/********** Getters **********/
-	public ArrayList<ArrayList<Double>> getP() {
-		return (ArrayList<ArrayList<Double>>) P.clone();
-	}
 
 	public PointDouble getDeviceCoords() {
 		PointDouble point = new PointDouble(X.getCurrentXYZPosition().getX(), X.getCurrentXYZPosition().getZ());
@@ -58,22 +56,14 @@ public class EKF {
 		return 0; // method stub
 	}
 
-	/********** Setters **********/
-
-	private void setPxx(Matrix matrix) {
-		for (int i = 0; i < matrix.getRowDimension(); i++) {
-			ArrayList<Double> row = P.get(i);
-			for (int j = 0; j < matrix.getColumnDimension(); j++) {
-				row.set(j, matrix.get(i, j));
-			}
-		}
-	}
-
 	/********** INS Update **********/
 
 	public void predict(PointTriple linearImpulse, PointTriple angularImpulse, double deltaTime) {
 
+		// Keep a record of the old state vector and covariance matrix at this
+		// time step
 		Xm1 = X.clone();
+		Pm1 = P.clone();
 
 		PointTriple xyzPositionOld = X.getCurrentXYZPosition();
 		Quaternion quaternionOld = X.getCurrentQuaternion();
@@ -97,54 +87,13 @@ public class EKF {
 		Matrix A_Matrix = this.createA(vOld, omegaOld, deltaTime);
 		Matrix Q_Matrix = this.createQ(deltaTime, quaternionOld, omegaOld);
 
-		Matrix Pxx_Matrix = this.extractPxx();
+		Matrix Pxx_Matrix = P.extractPxx();
 		Pxx_Matrix = A_Matrix.times(Pxx_Matrix).times(A_Matrix.transpose()).plus(Q_Matrix);
-		this.setPxx(Pxx_Matrix);
+		P.setPxx(Pxx_Matrix);
 
 		// Update the first 3 columns of P (device to feature correlation) P_ri
 		// = A * P_ri
-
-		for (int i = 0; i < X.getNumFeatures(); i++) {
-			Matrix PriMatrix = extractPri(i);
-			PriMatrix = A_Matrix.times(PriMatrix);
-
-			int targetStartRowIndex = 0;
-			int targetStartColIndex = X.getStartingIndexInStateVector(i);
-
-			for (int j = 0; j < PriMatrix.getRowDimension(); j++)
-				for (int k = 0; k < PriMatrix.getColumnDimension(); k++)
-					P.get(targetStartRowIndex + j).set(targetStartColIndex + k, PriMatrix.get(j, k));
-
-			// Also update the transpose
-			Matrix PriMatrixTranspose = PriMatrix.transpose();
-
-			// swap row and col
-			int temp = targetStartRowIndex;
-			targetStartRowIndex = targetStartColIndex;
-			targetStartColIndex = temp;
-
-			for (int j = 0; j < PriMatrixTranspose.getRowDimension(); j++)
-				for (int k = 0; k < PriMatrixTranspose.getColumnDimension(); k++)
-					P.get(targetStartRowIndex + j).set(targetStartColIndex + k, PriMatrixTranspose.get(j, k));
-		}
-	}
-
-	private Matrix extractPri(int index) {
-		int startIndex = STATE_VARS_OF_INTEREST + index * FEATURE_SIZE;
-
-		return this.extractSubMatrix(0, STATE_VARS_OF_INTEREST, startIndex, startIndex + FEATURE_SIZE - 1);
-	}
-
-	private Matrix extractPxx() {
-		return this.extractSubMatrix(0, STATE_VARS_OF_INTEREST - 1, 0, STATE_VARS_OF_INTEREST - 1);
-	}
-
-	private Matrix extractSubMatrix(int startRow, int endRow, int startCol, int endCol) {
-		double[][] sub = new double[endRow - startRow + 1][endCol - startCol + 1];
-		for (int i = startRow; i <= endRow; i++)
-			for (int j = startCol; j <= endCol; j++)
-				sub[i - startRow][j - startCol] = P.get(i).get(j);
-		return new Matrix(sub);
+		P.updatePri(A_Matrix);
 	}
 
 	/********** V-INS Update **********/
@@ -165,7 +114,7 @@ public class EKF {
 
 		/* Calculate the Kalman Gain */
 		Matrix hMatrix = this.createH(predictedDistance, featureIndex, featureCoords, deviceCoords);
-		Matrix pMatrix = this.extractSubMatrix(0, P.size() - 1, 0, P.size() - 1);
+		Matrix pMatrix = P.toMatrix();
 		Matrix hphMatrix = hMatrix.times(pMatrix).times(hMatrix.transpose());
 		Matrix vrvMatrix = this.createVRVMatrix(observedDistance);
 		Matrix innovationMatrix = hphMatrix.plus(vrvMatrix);
@@ -186,17 +135,9 @@ public class EKF {
 
 		// Update covariance
 		pMatrix = pMatrix.minus(kalmanGainMatrix.times(innovationMatrix).times(kalmanGainMatrix.transpose()));
-		updateCovariance(pMatrix);
+		P.set(pMatrix);
 
 		// Log.d("EKFTests", "State Vector: " + X.toString());
-	}
-
-	private void updateCovariance(Matrix pMatrix) {
-		for (int i = 0; i < P.size(); i++) {
-			for (int j = 0; j < P.get(i).size(); j++) {
-				P.get(i).set(j, pMatrix.get(i, j));
-			}
-		}
 	}
 
 	public void updateFromReobservedFeatureCoords(int featureIndex, double fX, double fY) {
@@ -215,16 +156,7 @@ public class EKF {
 	// state vector and covariance matrix.
 	public void deleteFeature(int featureIndex) {
 		X.deleteFeature(featureIndex);
-
-		int targetIndexStart = X.getStartingIndexInStateVector(featureIndex);
-		P.remove(targetIndexStart);
-		P.remove(targetIndexStart);
-
-		for (ArrayList<Double> row : P) {
-			row.remove(targetIndexStart);
-			row.remove(targetIndexStart);
-		}
-
+		P.deleteFeature(featureIndex);
 	}
 
 	// Method for adding a feature to the sate vector and covariance matrix.
@@ -233,8 +165,7 @@ public class EKF {
 				X.getCurrentQuaternion(), u, v, INITIAL_RHO);
 
 		X.addFeature(newFeature);
-
-		this.P = FeatureInitializationHelper.createNewP(P, X, u, v, STDDEV_PXL, STDDEV_RHO);
+		P.addFeature(X, u, v, STDDEV_PXL, STDDEV_RHO);
 	}
 
 	/********** Methods for Creating Matrices **********/
@@ -274,22 +205,8 @@ public class EKF {
 		return new StateVector(STATE_VARS_OF_INTEREST, FEATURE_SIZE);
 	}
 
-	// Initializes the covariance matrix
-	private ArrayList<ArrayList<Double>> createInitialP() {
-		ArrayList<ArrayList<Double>> P = new ArrayList<ArrayList<Double>>();
-
-		for (int i = 0; i < STATE_VARS_OF_INTEREST; i++) {
-			ArrayList<Double> currRow = new ArrayList<Double>();
-			for (int j = 0; j < STATE_VARS_OF_INTEREST; j++) {
-				if (i != j)
-					currRow.add(0.0);
-				else
-					currRow.add(P_DIAGONAL_INITIAL);
-			}
-			P.add(currRow);
-		}
-
-		return P;
+	private CovarianceMatrix createInitialP() {
+		return new CovarianceMatrix(STATE_VARS_OF_INTEREST, FEATURE_SIZE, P_DIAGONAL_INITIAL);
 	}
 
 	/** Creates the Jacobian for the Process Model **/
