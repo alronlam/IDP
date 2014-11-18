@@ -41,13 +41,11 @@ public class CovarianceMatrix {
 	/*** Feature manipulation Methods ***/
 	public void addFeature(StateVector Xv, int ud, int vd, double std_rho, double std_pxl, Camera camera) {
 
-		// temporary while i'm not sure how to initialize this
-		double fku = camera.f * camera.k1;
-		double fkv = camera.f * camera.k1;
-
 		Matrix R_wc = Helper.quaternionToRotationMatrix(Xv.getCurrentQuaternion());
 
-		// undistorted. temporarily just the same as u,v
+		// i'm not sure how to initialize this
+		double fku = camera.f * camera.k1;
+		double fkv = camera.f * camera.k2;
 		Matrix undistortedUV = CameraHelper.undistort(ud, vd, camera);
 		double uu = undistortedUV.get(0, 0);
 		double vu = undistortedUV.get(1, 0);
