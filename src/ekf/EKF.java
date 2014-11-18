@@ -6,17 +6,8 @@ import Jama.Matrix;
 
 public class EKF {
 
-	private ArrayList<Double> X; // State Vector
+	private StateVector X;
 	private ArrayList<ArrayList<Double>> P; // Covariance Matrix
-	private int numFeatures;
-
-	/*
-	 * These are jacobians of the prediction model used when adding a new
-	 * feature in the covariance matrix. They are updated every INS update
-	 * because they are based on displacement and heading.
-	 */
-	private Matrix jrMatrix;
-	private Matrix jzMatrix;
 
 	/* Constants */
 	public static final int FEATURE_SIZE = 3;
@@ -39,9 +30,6 @@ public class EKF {
 	public EKF() {
 		X = createInitialX();
 		P = createInitialP();
-
-		jrMatrix = this.createJRMatrix(0, 0);
-		jzMatrix = this.createJZMatrix(0, 0, 0);
 	}
 
 	/********** Getters **********/
@@ -49,23 +37,8 @@ public class EKF {
 		return (ArrayList<ArrayList<Double>>) P.clone();
 	}
 
-	public ArrayList<Double> getX() {
-		return (ArrayList<Double>) X.clone();
-	}
-
 	public PointDouble getDeviceCoords() {
-		PointDouble point = new PointDouble(X.get(0), X.get(1));
-		return point;
-	}
-
-	private PointDouble getFeatureCoordsFromStateVector(int featureIndex) {
-
-		int stateVectorIndexOfFeature = 3 + featureIndex * 2;
-		double targetFeatureX = X.get(stateVectorIndexOfFeature);
-		double targetFeatureY = X.get(stateVectorIndexOfFeature + 1);
-
-		PointDouble point = new PointDouble(targetFeatureX, targetFeatureY);
-
+		PointDouble point = new PointDouble(X.getCurrentXYZPosition().getX(), X.getCurrentXYZPosition().getZ());
 		return point;
 	}
 
@@ -79,78 +52,11 @@ public class EKF {
 		return sb.toString();
 	}
 
-	public PointTriple getCurrentXYZPosition() {
-		double x = X.get(0);
-		double y = X.get(1);
-		double z = X.get(2);
-
-		return new PointTriple(x, y, z);
-	}
-
-	public Quaternion getCurrentQuaternion() {
-		double x = X.get(3);
-		double y = X.get(4);
-		double z = X.get(5);
-		double r = X.get(6);
-
-		Quaternion quaternion = new Quaternion(x, y, z, r);
-		return quaternion;
-	}
-
-	public PointTriple getCurrentV() {
-		double x = X.get(7);
-		double y = X.get(8);
-		double z = X.get(9);
-
-		return new PointTriple(x, y, z);
-	}
-
-	public PointTriple getCurrentOmega() {
-		double x = X.get(10);
-		double y = X.get(11);
-		double z = X.get(12);
-
-		return new PointTriple(x, y, z);
-	}
-
-	public int getTotalStateSize() {
-		return STATE_VARS_OF_INTEREST + numFeatures * FEATURE_SIZE;
-	}
-
-	public int getStartingIndexInStateVector(int featureIndex) {
-		return STATE_VARS_OF_INTEREST + FEATURE_SIZE * featureIndex;
-	}
-
 	public double getHeadingRadians() {
 		return 0; // method stub
 	}
 
 	/********** Setters **********/
-
-	private void setXYZPosition(PointTriple newXYZ) {
-		X.set(0, newXYZ.getX());
-		X.set(1, newXYZ.getY());
-		X.set(2, newXYZ.getZ());
-	}
-
-	private void setQuaternion(Quaternion q) {
-		X.set(3, q.getX());
-		X.set(4, q.getY());
-		X.set(5, q.getZ());
-		X.set(6, q.getR());
-	}
-
-	private void setV(PointTriple newV) {
-		X.set(7, newV.getX());
-		X.set(8, newV.getY());
-		X.set(9, newV.getZ());
-	}
-
-	private void setOmega(PointTriple newOmega) {
-		X.set(10, newOmega.getX());
-		X.set(11, newOmega.getY());
-		X.set(12, newOmega.getZ());
-	}
 
 	private void setPxx(Matrix matrix) {
 		for (int i = 0; i < matrix.getRowDimension(); i++) {
@@ -164,10 +70,10 @@ public class EKF {
 	/********** INS Update **********/
 
 	public void predict(PointTriple linearImpulse, PointTriple angularImpulse, double deltaTime) {
-		PointTriple xyzPositionOld = this.getCurrentXYZPosition();
-		Quaternion quaternionOld = this.getCurrentQuaternion();
-		PointTriple vOld = this.getCurrentV();
-		PointTriple omegaOld = this.getCurrentOmega();
+		PointTriple xyzPositionOld = X.getCurrentXYZPosition();
+		Quaternion quaternionOld = X.getCurrentQuaternion();
+		PointTriple vOld = X.getCurrentV();
+		PointTriple omegaOld = X.getCurrentOmega();
 
 		// Not sure if correct, but this is what's written in MonoSLAM code
 		PointTriple xyzPositionNew = xyzPositionOld.plus(vOld.times(deltaTime));
@@ -177,10 +83,10 @@ public class EKF {
 		PointTriple omegaNew = omegaOld.plus(angularImpulse);
 
 		/* Update the state vector according to predictions */
-		this.setXYZPosition(xyzPositionNew);
-		this.setQuaternion(quaternionNew);
-		this.setV(vNew);
-		this.setOmega(omegaNew);
+		X.setXYZPosition(xyzPositionNew);
+		X.setQuaternion(quaternionNew);
+		X.setV(vNew);
+		X.setOmega(omegaNew);
 
 		/* Update the covariance matrices based on this prediction */
 		Matrix A_Matrix = this.createA(vOld, omegaOld, deltaTime);
@@ -193,12 +99,12 @@ public class EKF {
 		// Update the first 3 columns of P (device to feature correlation) P_ri
 		// = A * P_ri
 
-		for (int i = 0; i < numFeatures; i++) {
+		for (int i = 0; i < X.getNumFeatures(); i++) {
 			Matrix PriMatrix = extractPri(i);
 			PriMatrix = A_Matrix.times(PriMatrix);
 
 			int targetStartRowIndex = 0;
-			int targetStartColIndex = this.getStartingIndexInStateVector(i);
+			int targetStartColIndex = X.getStartingIndexInStateVector(i);
 
 			for (int j = 0; j < PriMatrix.getRowDimension(); j++)
 				for (int k = 0; k < PriMatrix.getColumnDimension(); k++)
@@ -243,7 +149,10 @@ public class EKF {
 			double observedHeading) {
 
 		PointDouble deviceCoords = this.getDeviceCoords();
-		PointDouble featureCoords = this.getFeatureCoordsFromStateVector(featureIndex);
+		// Changed the following line to remove the compile error brought about
+		// by moving state vector to its own class. Duke is going to change this
+		// anyway.
+		PointDouble featureCoords = null;
 
 		/* Predict the distance and heading to the specified feature */
 		double predictedDistance = deviceCoords.computeDistanceTo(featureCoords);
@@ -264,19 +173,11 @@ public class EKF {
 		Matrix zMinusHMatrix = new Matrix(differenceVector);
 
 		/* Adjust state vector based on prediction */
-		Matrix xMatrix = createStateVectorMatrix();
+		Matrix xMatrix = X.getMatrix();
 		xMatrix = xMatrix.plus(kalmanGainMatrix.times(zMinusHMatrix));
 
-		// Log.d("EKFTests", "observedDistance= " + observedDistance +
-		// ", predictedDistance " + predictedDistance
-		// + " observedHeading=" + observedHeading + " predictedHeadingDelta=" +
-		// predictedHeadingDelta);
-
 		// re-populate the state vector based on the result
-		X.clear();
-		double[][] x = xMatrix.getArray();
-		for (int i = 0; i < x.length; i++)
-			X.add(x[i][0]);
+		X.setXBasedOnMatrix(xMatrix);
 
 		// Update covariance
 		pMatrix = pMatrix.minus(kalmanGainMatrix.times(innovationMatrix).times(kalmanGainMatrix.transpose()));
@@ -308,11 +209,9 @@ public class EKF {
 	// Method for deleting a feature. Includes removing the feature from the
 	// state vector and covariance matrix.
 	public void deleteFeature(int featureIndex) {
-		int targetIndexStart = 3 + featureIndex * 2;
+		X.deleteFeature(featureIndex);
 
-		X.remove(targetIndexStart);
-		X.remove(targetIndexStart);
-
+		int targetIndexStart = X.getStartingIndexInStateVector(featureIndex);
 		P.remove(targetIndexStart);
 		P.remove(targetIndexStart);
 
@@ -321,35 +220,16 @@ public class EKF {
 			row.remove(targetIndexStart);
 		}
 
-		numFeatures--;
 	}
 
 	// Method for adding a feature to the sate vector and covariance matrix.
 	public void addFeature(int u, int v) {
-		IDPFeature newFeature = FeatureInitializationHelper.createFeature(this.getCurrentXYZPosition(),
-				this.getCurrentQuaternion(), u, v, INITIAL_RHO);
+		IDPFeature newFeature = FeatureInitializationHelper.createFeature(X.getCurrentXYZPosition(),
+				X.getCurrentQuaternion(), u, v, INITIAL_RHO);
 
-		addFeatureToX(newFeature);
+		X.addFeature(newFeature);
 
 		this.P = FeatureInitializationHelper.createNewP(P, X, u, v, STDDEV_PXL, STDDEV_RHO);
-
-		numFeatures++;
-	}
-
-	private void addFeatureToX(IDPFeature newFeature) {
-		double x = newFeature.getX();
-		double y = newFeature.getY();
-		double z = newFeature.getZ();
-		double azimuth = newFeature.getAzimuth();
-		double elevation = newFeature.getElevation();
-		double p = newFeature.getP();
-
-		X.add(x);
-		X.add(y);
-		X.add(z);
-		X.add(azimuth);
-		X.add(elevation);
-		X.add(p);
 	}
 
 	/********** Methods for Creating Matrices **********/
@@ -357,7 +237,7 @@ public class EKF {
 	private Matrix createH(double predictedDistance, int featureIndex, PointDouble featureCoords,
 			PointDouble deviceCoords) {
 		// Set-up H for the specified feature
-		double[][] H = new double[2][3 + numFeatures * 2];
+		double[][] H = new double[2][3 + X.getNumFeatures() * 2];
 
 		double r = predictedDistance;
 		double A = (deviceCoords.getX() - featureCoords.getX()) / r;
@@ -385,12 +265,8 @@ public class EKF {
 	}
 
 	// Initializes the state vector
-	private ArrayList<Double> createInitialX() {
-		ArrayList<Double> X = new ArrayList<Double>();
-		for (int i = 0; i < STATE_VARS_OF_INTEREST; i++) {
-			X.add(0.0);
-		}
-		return X;
+	private StateVector createInitialX() {
+		return new StateVector(STATE_VARS_OF_INTEREST, FEATURE_SIZE);
 	}
 
 	// Initializes the covariance matrix
@@ -426,13 +302,13 @@ public class EKF {
 		A_Matrix = Helper.setSubMatrixValues(A_Matrix, deltaTimeMatrix, 0, 7);
 
 		/* Initialize 4x4 dqnew_by_domega */
-		Quaternion qwt = QuaternionHelper.calculateQWT(this.getCurrentOmega(), deltaTime);
+		Quaternion qwt = QuaternionHelper.calculateQWT(X.getCurrentOmega(), deltaTime);
 		Matrix dqnew_by_dq = QuaternionHelper.dq3_by_dq2(qwt);
 		A_Matrix = Helper.setSubMatrixValues(A_Matrix, dqnew_by_dq, 3, 3);
 
 		/* Initialize 4x3 dqnew_by_domega = d(q x qwt)_by_dqwt . dqwt_by_domega */
-		PointTriple omegaOld = this.getCurrentOmega();
-		Matrix dqnew_by_domega = QuaternionHelper.dq3_by_dq1(this.getCurrentQuaternion()).times(
+		PointTriple omegaOld = X.getCurrentOmega();
+		Matrix dqnew_by_domega = QuaternionHelper.dq3_by_dq1(X.getCurrentQuaternion()).times(
 				QuaternionHelper.dqomegadt_by_domega(omegaOld, deltaTime));
 		A_Matrix = Helper.setSubMatrixValues(A_Matrix, dqnew_by_domega, 3, 10);
 
@@ -485,15 +361,6 @@ public class EKF {
 		vrv[0][0] = distance * VRV_DISTANCE_VARIANCE;
 		vrv[1][1] = VRV_HEADING_NOISE;// Math.toRadians(2);
 		return new Matrix(vrv);
-	}
-
-	// Just converts the current state vector to a Matrix object
-	private Matrix createStateVectorMatrix() {
-		double[][] x = new double[X.size()][1];
-		for (int i = 0; i < X.size(); i++)
-			x[i][0] = X.get(i);
-
-		return new Matrix(x);
 	}
 
 	// Creates some Jacobian matrix used when adding a new feature to the

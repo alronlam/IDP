@@ -24,8 +24,8 @@ public class FeatureInitializationHelper {
 		return new IDPFeature(x, y, z, azimuth, elevation, initialRho);
 	}
 
-	public static ArrayList<ArrayList<Double>> createNewP(ArrayList<ArrayList<Double>> oldP, ArrayList<Double> Xv,
-			double u, double v, double std_rho, double std_pxl) {
+	public static ArrayList<ArrayList<Double>> createNewP(ArrayList<ArrayList<Double>> oldP, StateVector Xv, double u,
+			double v, double std_rho, double std_pxl) {
 		ArrayList<ArrayList<Double>> newP = (ArrayList<ArrayList<Double>>) oldP.clone();
 
 		return newP;
