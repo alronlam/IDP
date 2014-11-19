@@ -139,8 +139,6 @@ public class IDPUtility {
 		int insert = 13 + 6 * index;
 		Hi.setMatrix(0, 1, insert - 1, insert + 4, dh_dy(cam,Xv_km1_k,yi,zi));
 		
-		// oh this is gonna be so fun NOT
-		
 		return Hi;
 	}
 	
@@ -165,15 +163,28 @@ public class IDPUtility {
 		Matrix dmi_dthetai = Rrw.times(new Matrix(d1).transpose());
 		Matrix dmi_dphii = Rrw.times(new Matrix(d2).transpose());
 		
+		Matrix out = null;
+
 		//a = [lambda*Rrw  dmi_dthetai dmi_dphii Rrw*(yi(1:3)-rw) ];
-		//NOT DONE
-		return null;
+		
+		out.setMatrix(0, 2, 0, 2, Rrw.times(lambda));
+		out.setMatrix(3, 3, 0, 2, dmi_dthetai);
+		out.setMatrix(4, 4, 0, 2, dmi_dphii);
+		out.setMatrix(5, 5, 0, 2, Rrw.times(yi.getMatrix(0,2,0,0).minus(rw)));
+		
+		return out;
 	}
 	
 	private static Matrix dh_dxv(Camera cam, Matrix Xv_km1_k, Matrix yi, Matrix zi) {
-	    //Hi1 = [ dh_drw( camera, Xv_km1_k, yi, zi )  dh_dqwr( camera, Xv_km1_k, yi, zi ) zeros( 2, 6 )];
-		//how to do this o:
-		return null;
+		Matrix Hi1 = new Matrix(2, 12);
+		Matrix zero = new Matrix(2, 6);
+	    
+		//Hi1 = [ dh_drw( camera, Xv_km1_k, yi, zi )  dh_dqwr( camera, Xv_km1_k, yi, zi ) zeros( 2, 6 )];
+		Hi1.setMatrix(0, 1, 0, 2, dh_drw(cam, Xv_km1_k, yi, zi));
+		Hi1.setMatrix(0, 1, 3, 5, dh_dqwr(cam, Xv_km1_k, yi, zi));
+		Hi1.setMatrix(0, 1, 6, 11, zero);
+		
+		return Hi1;
 	}
 	
 	private static Matrix dh_dqwr(Camera cam, Matrix Xv_km1_k, Matrix yi, Matrix zi) {
@@ -182,16 +193,101 @@ public class IDPUtility {
 	
 	private static Matrix dhrl_dqwr(Matrix Xv_km1_k, Matrix yi) {
 		Matrix rw = Xv_km1_k.getMatrix(0, 2, 0,0);
-		Matrix qwr = Xv_km1_k.getMatrix(3, 6, 0,0);
+		Matrix qwr = Xv_km1_k.getMatrix(3,6,0,0);
 		
 		double lambda = yi.get(5,0);
 		double phi = yi.get(4,0);
 		double theta = yi.get(3,0);
 		
-		// a = dRq_times_a_by_dq( qconj(qwr), ((yi(1:3) - rw)*lambda + mi) )*dqbar_by_dq;
-		return null;
+		Matrix mi = Helper.m_function(theta, phi);
+		
+		//a = dRq_times_a_by_dq( qconj(qwr), ((yi(1:3) - rw)*lambda + mi) )*dqbar_by_dq;
+		
+		Matrix a = dRq_times_a_by_dq(QuaternionHelper.qconj(qwr), (yi.getMatrix(0,2,0,0).minus(rw).times(lambda).plus(mi)));
+		
+		// this is dqbar_by_dq
+		double[][] out = new double[4][4];
+		
+		out[0][0] = 1;
+		out[1][1] = out[2][2] = out[3][3] = -1;
+		
+		return a.times(new Matrix(out));
 	}
 	
+	private static Matrix dRq_times_a_by_dq(Matrix q, Matrix aMat) {
+		Matrix out = new Matrix(3,4);
+		
+		Matrix tempR = dR_by_dq0(q);
+		Matrix temp31 = tempR.times(aMat);
+		out.setMatrix(0, 2, 0, 0, temp31);
+		
+		tempR = dR_by_dqx(q);
+		temp31 = tempR.times(aMat);
+		out.setMatrix(0,2,1,1,temp31);
+		
+		tempR = dR_by_dqy(q);
+		temp31 = tempR.times(aMat);
+		out.setMatrix(0,2,2,2,temp31);
+		
+		tempR = dR_by_dqz(q);
+		temp31 = tempR.times(aMat);
+		out.setMatrix(0,2,3,3,temp31);
+		
+		return out;
+	}
+	
+	private static Matrix dR_by_dq0(Matrix q) {
+		  double q0 = q.get(0,0);
+		  double qx = q.get(1,0);
+		  double qy = q.get(2,0);
+		  double qz = q.get(3,0);
+		  
+		  double[][] out = {	{2*q0, -2*qz, 2*qy},
+				  				{2*qz,  2*q0, -2*qx},
+				  				{-2*qy,  2*qx,  2*q0}};
+		  
+		  return new Matrix(out);
+	}
+	
+	private static Matrix dR_by_dqx(Matrix q) {
+		  double q0 = q.get(0,0);
+		  double qx = q.get(1,0);
+		  double qy = q.get(2,0);
+		  double qz = q.get(3,0);
+		  
+		  double[][] out = {	{2*qx, 2*qy, 2*qz},
+				  				{2*qy, -2*qx, -2*q0},
+				  				{2*qz, 2*q0,  -2*qx}};
+		  
+		  return new Matrix(out);
+	}
+	
+	private static Matrix dR_by_dqy(Matrix q) {
+		  double q0 = q.get(0,0);
+		  double qx = q.get(1,0);
+		  double qy = q.get(2,0);
+		  double qz = q.get(3,0);
+		  
+		  double[][] out = {	{-2*qy, 2*qx,  2*q0},
+				  				{2*qx, 2*qy,  2*qz},
+				  				{-2*q0, 2*qz, -2*qy}};
+		  
+		  return new Matrix(out);
+	}
+	
+	private static Matrix dR_by_dqz(Matrix q) {
+		  double q0 = q.get(0,0);
+		  double qx = q.get(1,0);
+		  double qy = q.get(2,0);
+		  double qz = q.get(3,0);
+		  
+		  double[][] out = {	{-2*qz, -2*q0, 2*qx},
+				  				{2*q0, -2*qz, 2*qy},
+				  				{2*qx,  2*qy, 2*qz}};
+		  
+		  return new Matrix(out);
+	}
+			  
 	private static Matrix dh_drw(Camera cam, Matrix Xv_km1_k, Matrix yi, Matrix zi) {
 		return dh_dhrl(cam, Xv_km1_k, yi, zi).times(dhrl_drw(Xv_km1_k, yi));
 	}
