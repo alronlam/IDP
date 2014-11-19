@@ -88,10 +88,10 @@ public class EKFTests extends TestCase {
 		log.append(ekf.getStateVector() + "\r\n");
 		log.append(ekf.getCovarianceMatrix() + "\r\n\n");
 
-		// predict(ekf, false);
-		// ekf.addFeature(1, 5, camera);
-		// log.append(ekf.getStateVector() + "\r\n");
-		// log.append(ekf.getCovarianceMatrix() + "\r\n\n");
+		predict(ekf, false);
+		ekf.addFeature(1, 5, camera);
+		log.append(ekf.getStateVector() + "\r\n");
+		log.append(ekf.getCovarianceMatrix() + "\r\n\n");
 		//
 		// predict(ekf, false);
 		// ekf.addFeature(6, 3, camera);

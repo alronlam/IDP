@@ -67,4 +67,7 @@ public class Quaternion {
 		return new Quaternion(newX, newY, newZ, newR);
 	}
 
+	public String toString() {
+		return "(" + x + ", " + y + ", " + z + ", " + r + ")";
+	}
 }

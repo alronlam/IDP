@@ -24,12 +24,12 @@ public class QuaternionHelper {
 		w = w.times(deltaTime);
 
 		double theta = w.getNorm();
-		if (theta < 1)// eps)
-			return new Quaternion(1, 0, 0, 0);
-		else {
-			PointTriple w_n = w.divide(theta);
-			return new Quaternion(w_n, theta);
-		}
+		// if (theta < 1)// eps)
+		// return new Quaternion(1, 0, 0, 0);
+		// else {
+		PointTriple w_n = w.divide(theta);
+		return new Quaternion(w_n, theta);
+		// }
 	}
 
 	public static Matrix dqomegadt_by_domega(PointTriple omega, double deltaTime) {
