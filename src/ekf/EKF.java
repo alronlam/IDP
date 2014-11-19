@@ -241,6 +241,13 @@ public class EKF {
 		PointTriple omegaOld = X.getCurrentOmega();
 		Matrix dqnew_by_domega = QuaternionHelper.dq3_by_dq1(X.getCurrentQuaternion()).times(
 				QuaternionHelper.dqomegadt_by_domega(omegaOld, deltaTime));
+
+		System.out.println("dqnew_by_domega");
+		QuaternionHelper.dq3_by_dq1(X.getCurrentQuaternion()).print(0, 0);
+		System.out.println();
+		QuaternionHelper.dqomegadt_by_domega(omegaOld, deltaTime).print(0, 0);
+		;
+
 		A_Matrix = Helper.setSubMatrixValues(A_Matrix, dqnew_by_domega, 3, 10);
 
 		return A_Matrix;
