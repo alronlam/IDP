@@ -160,7 +160,7 @@ public class IDPUtility {
 		Matrix dmi_dthetai = Rrw.times(new Matrix(d1).transpose());
 		Matrix dmi_dphii = Rrw.times(new Matrix(d2).transpose());
 		
-		Matrix out = null;
+		Matrix out = new Matrix(6, 3);
 
 		//a = [lambda*Rrw  dmi_dthetai dmi_dphii Rrw*(yi(1:3)-rw) ];
 		
@@ -342,21 +342,4 @@ public class IDPUtility {
 		
 		return new Matrix(a);
 	}
-
-	/*
-	public static void predict_features_appearance(FeatureInfo features_info, StateVector x_k_k, Camera cam) {
-		Matrix x = x_k_k.toMatrix();
-		Matrix r_wc = x.getMatrix(0, 2, 0, 0);
-		double[][] p = x.getMatrix(3, 6, 0, 0).getArray();
-		Quaternion q = new Quaternion(p[0][0], p[1][0], p[2][0], p[3][0]);
-		Matrix R_wc = Helper.quaternionToRotationMatrix(q);
-		
-		Matrix XYZ_w = Helper.inverseDepthToCartesian(new IDPFeature(x.getMatrix(7, 13, 0, 0)));
-		
-		if (features_info.h != null) {
-			features_info.patch_when_matching = pred_patch_fc(cam, features_info, R_wc, r_wc, XYZ_w);
-		}
-		
-	}
-	*/
 }

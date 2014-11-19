@@ -38,6 +38,9 @@ public class EKF {
 	public EKF() {
 		X = createInitialX();
 		P = createInitialP();
+		
+		cam = new Camera();
+		features_info = new ArrayList<FeatureInfo>();
 	}
 
 	/********** Getters **********/
@@ -160,15 +163,24 @@ public class EKF {
 	public void deleteFeature(int featureIndex) {
 		X.deleteFeature(featureIndex);
 		P.deleteFeature(featureIndex);
+		
+		// remove from feature_info
+		features_info.remove(featureIndex);
 	}
 
 	// Method for adding a feature to the sate vector and covariance matrix.
 	public void addFeature(int ud, int vd, Camera camera) {
 		IDPFeature newFeature = FeatureInitializationHelper.createFeature(X.getCurrentXYZPosition(),
 				X.getCurrentQuaternion(), ud, vd, INITIAL_RHO);
-
+		
+		double[][] uv = {{ud,vd}};
+		FeatureInfo f = new FeatureInfo(new Matrix(uv), X.toMatrix(), newFeature);
+		features_info.add(f);
+		
 		X.addFeature(newFeature);
 		P.addFeature(X, ud, vd, STDDEV_PXL, STDDEV_RHO, camera);
+		
+		//features_info.add(new FeatureInfo());
 	}
 
 	/********** Methods for Creating Matrices **********/
