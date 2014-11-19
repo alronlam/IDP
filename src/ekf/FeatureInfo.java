@@ -18,12 +18,12 @@ public class FeatureInfo {
 	public int times_measured = 0;
 	
 	private Matrix patch_when_initialized;
-	private Matrix patch_when_matching;
 	private Matrix r_wc_when_initialized;
 	private Matrix R_wc_when_initialized;
 	private Matrix uv_when_initialized;
 	private Matrix init_measurement;
 
+	public Matrix patch_when_matching;
 	public Matrix z, h, H, S, R;
 	
 	private IDPFeature yi;

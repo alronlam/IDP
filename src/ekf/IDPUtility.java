@@ -11,7 +11,7 @@ public class IDPUtility {
 	// retrieved from https://svn.openslam.org/data/svn/ekfmonoslam/trunk/matlab_code
 	// thank you, monoslam :D
 	
-	public static void predict_camera_measurements(StateVector x_k_k, Camera cam, ArrayList<FeatureInfo> features_info) {
+	public static void predict_camera_measurements(StateVector x_k_k, Camera cam, ArrayList<FeatureInfo> features_info, int featureIndex) {
 		// Pinhole Model (whatever that means)
 		//t_wc = x_k_k(1:3);
 		Matrix t_wc = x_k_k.toMatrix().getMatrix(0, 2, 0, 0);
@@ -24,14 +24,12 @@ public class IDPUtility {
 		Matrix features = x_k_k.toMatrix().getMatrix(13, x_k_k.toMatrix().getColumnDimension(), 0, 0);
 		
 		// implying i care about cartesian coords
-		for (int i = 0; i < features_info.size(); i++) {
-			Matrix yi = features.getMatrix(0, 5, 0, 0);
-			IDPFeature y = new IDPFeature(yi.get(0, 0), yi.get(1,0), yi.get(2,0), yi.get(3,0), yi.get(4,0), yi.get(5,0));
-			features = features.getMatrix(6, features.getColumnDimension(), 0, 0);
-			Matrix hi = hi_inverse_depth(y, t_wc, r_wc, cam, features_info);
-			if (hi != null)
-				features_info.get(i).h = hi.transpose();
-		}
+		Matrix yi = features.getMatrix(0, 5, 0, 0);
+		IDPFeature y = new IDPFeature(yi.get(0, 0), yi.get(1,0), yi.get(2,0), yi.get(3,0), yi.get(4,0), yi.get(5,0));
+		features = features.getMatrix(6, features.getColumnDimension(), 0, 0);
+		Matrix hi = hi_inverse_depth(y, t_wc, r_wc, cam, features_info);
+		if (hi != null)
+			features_info.get(featureIndex).h = hi.transpose();
 	}
 	
 	private static Matrix hi_inverse_depth(IDPFeature yinit, Matrix t_wc, Matrix r_wc, Camera cam, ArrayList<FeatureInfo> features_info) {
@@ -111,19 +109,18 @@ public class IDPUtility {
 		return new Matrix(out);
 	}
 	
-	public static void calculate_derivatives(Matrix x_k_km1, Camera cam, ArrayList<FeatureInfo> features_info) {
-		Matrix x_v = x_k_km1.getMatrix(0,12,0,0);
-		Matrix x_features = x_k_km1.getMatrix(13,x_k_km1.getColumnDimension(),0,0);
+	public static void calculate_derivatives(StateVector x_k_km1, Camera cam, ArrayList<FeatureInfo> features_info, int featureIndex) {
+		Matrix x = x_k_km1.toMatrix();
+		Matrix x_v = x.getMatrix(0,12,0,0);
+		Matrix x_features = x.getMatrix(13,x.getColumnDimension(),0,0);
 		
-		for (int i = 0; i < features_info.size(); i++) {
-			if (features_info.get(i).h != null) {
-				Matrix y = x_features.getMatrix(0,5,0,0);
-				x_features = x_features.getMatrix(6,x_features.getColumnDimension(),0,0);
-				features_info.get(i).H = calculate_Hi_inverse_depth(x_v, y, cam, i, features_info);
-			}
-			else {
-				x_features = x_features.getMatrix(6,x_features.getColumnDimension(),0,0);
-			}
+		if (features_info.get(featureIndex).h != null) {
+			Matrix y = x_features.getMatrix(0,5,0,0);
+			x_features = x_features.getMatrix(6,x_features.getColumnDimension(),0,0);
+			features_info.get(featureIndex).H = calculate_Hi_inverse_depth(x_v, y, cam, featureIndex, features_info);
+		}
+		else {
+			x_features = x_features.getMatrix(6,x_features.getColumnDimension(),0,0);
 		}
 	}
 	
@@ -345,5 +342,21 @@ public class IDPUtility {
 		
 		return new Matrix(a);
 	}
-	
+
+	/*
+	public static void predict_features_appearance(FeatureInfo features_info, StateVector x_k_k, Camera cam) {
+		Matrix x = x_k_k.toMatrix();
+		Matrix r_wc = x.getMatrix(0, 2, 0, 0);
+		double[][] p = x.getMatrix(3, 6, 0, 0).getArray();
+		Quaternion q = new Quaternion(p[0][0], p[1][0], p[2][0], p[3][0]);
+		Matrix R_wc = Helper.quaternionToRotationMatrix(q);
+		
+		Matrix XYZ_w = Helper.inverseDepthToCartesian(new IDPFeature(x.getMatrix(7, 13, 0, 0)));
+		
+		if (features_info.h != null) {
+			features_info.patch_when_matching = pred_patch_fc(cam, features_info, R_wc, r_wc, XYZ_w);
+		}
+		
+	}
+	*/
 }

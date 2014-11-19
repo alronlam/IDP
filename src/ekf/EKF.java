@@ -1,5 +1,7 @@
 package ekf;
 
+import java.util.ArrayList;
+
 import Jama.Matrix;
 
 public class EKF {
@@ -8,7 +10,11 @@ public class EKF {
 	private StateVector X;
 	private CovarianceMatrix Pm1;
 	private CovarianceMatrix P;
-
+	
+	// camera classes
+	private ArrayList<FeatureInfo> features_info;
+	private Camera cam;
+	
 	/* Constants */
 	public static final int FEATURE_SIZE = 6;
 	public static final int STATE_VARS_OF_INTEREST = 13;
@@ -27,8 +33,7 @@ public class EKF {
 	public static final double STDDEV_RHO = 0.5;
 	public static final double STDDEV_PXL = 1;
 
-	public static final double VRV_DISTANCE_VARIANCE = 0.1;
-	public static final double VRV_HEADING_NOISE = 0.1;
+	public static final double VRV_IMAGE_NOISE = 1;
 
 	public EKF() {
 		X = createInitialX();
@@ -107,33 +112,34 @@ public class EKF {
 	/********** V-INS Update **********/
 
 	// Method for correcting the state vector based on re-observed features.
-	public void updateFromReobservedFeatureThroughDistanceHeading(int featureIndex, double observedDistance,
-			double observedHeading) {
-
-		PointDouble deviceCoords = this.getDeviceCoords();
-		// Changed the following line to remove the compile error brought about
-		// by moving state vector to its own class. Duke is going to change this
-		// anyway.
-		PointDouble featureCoords = null;
-
-		/* Predict the distance and heading to the specified feature */
-		double predictedDistance = deviceCoords.computeDistanceTo(featureCoords);
-		double predictedHeadingDelta = deviceCoords.computeRadiansTo(featureCoords) - this.getHeadingRadians();
-
-		/* Calculate the Kalman Gain */
-		Matrix hMatrix = this.createH(predictedDistance, featureIndex, featureCoords, deviceCoords);
+	
+	public void updateFromReobservedFeatureThroughImageCoords(int featureIndex, double observedU,
+			double observedV) {
+		
+		// cam and features_info has not been initialized
+		IDPUtility.predict_camera_measurements(X, cam, features_info, featureIndex);
+		IDPUtility.calculate_derivatives(X, cam, features_info, featureIndex);
+		
+		Matrix h_cam = Helper.inverseDepthToCartesian(X.getFeature(featureIndex));
+		
+		double predictedU = cam.Cx - cam.f*h_cam.get(0,0)/cam.dx/h_cam.get(2, 0);
+		double predictedV = cam.Cy - cam.f*h_cam.get(1,0)/cam.dy/h_cam.get(2, 0);
+		
+		Matrix hMatrix = features_info.get(featureIndex).h;
 		Matrix pMatrix = P.toMatrix();
 		Matrix hphMatrix = hMatrix.times(pMatrix).times(hMatrix.transpose());
-		Matrix vrvMatrix = this.createVRVMatrix(observedDistance);
+		
+		Matrix vrvMatrix = this.createVRVMatrix();
 		Matrix innovationMatrix = hphMatrix.plus(vrvMatrix);
 		Matrix kalmanGainMatrix = pMatrix.times(hMatrix.transpose()).times(innovationMatrix.inverse());
 
 		// Still need to add measurement noise to these two variables
+		
 		double[][] differenceVector = new double[2][1];
-		differenceVector[0][0] = observedDistance - predictedDistance;
-		differenceVector[1][0] = observedHeading - predictedHeadingDelta;
+		differenceVector[0][0] = observedU - predictedU;
+		differenceVector[1][0] = observedV - predictedV;
 		Matrix zMinusHMatrix = new Matrix(differenceVector);
-
+		
 		/* Adjust state vector based on prediction */
 		Matrix xMatrix = X.toMatrix();
 		xMatrix = xMatrix.plus(kalmanGainMatrix.times(zMinusHMatrix));
@@ -146,18 +152,6 @@ public class EKF {
 		P.set(pMatrix);
 
 		// Log.d("EKFTests", "State Vector: " + X.toString());
-	}
-
-	public void updateFromReobservedFeatureCoords(int featureIndex, double fX, double fY) {
-
-		PointDouble deviceCoords = this.getDeviceCoords();
-		PointDouble observedFeatureCoords = new PointDouble(fX, fY);
-
-		/* Calculate the observed distance and heading */
-		double observedDistance = deviceCoords.computeDistanceTo(observedFeatureCoords);
-		double observedHeading = deviceCoords.computeRadiansTo(observedFeatureCoords) - this.getHeadingRadians();
-
-		this.updateFromReobservedFeatureThroughDistanceHeading(featureIndex, observedDistance, observedHeading);
 	}
 
 	// Method for deleting a feature.
@@ -178,37 +172,7 @@ public class EKF {
 	}
 
 	/********** Methods for Creating Matrices **********/
-
-	private Matrix createH(double predictedDistance, int featureIndex, PointDouble featureCoords,
-			PointDouble deviceCoords) {
-		// Set-up H for the specified feature
-		double[][] H = new double[2][3 + X.getNumFeatures() * 2];
-
-		double r = predictedDistance;
-		double A = (deviceCoords.getX() - featureCoords.getX()) / r;
-		double B = (deviceCoords.getY() - featureCoords.getY()) / r;
-		double C = 0;
-		double D = (featureCoords.getY() - deviceCoords.getY()) / (r * r);
-		double E = (featureCoords.getX() - deviceCoords.getX()) / (r * r);
-		double F = -1;
-
-		H[0][0] = A;
-		H[0][1] = B;
-		H[0][2] = C;
-		H[1][0] = D;
-		H[1][1] = E;
-		H[1][2] = F;
-
-		int targetFeatureIndex = 3 + 2 * featureIndex;
-
-		H[0][targetFeatureIndex] = -1 * A;
-		H[0][targetFeatureIndex + 1] = -1 * B;
-		H[1][targetFeatureIndex] = -1 * D;
-		H[1][targetFeatureIndex + 1] = -1 * E;
-
-		return new Matrix(H);
-	}
-
+	
 	// Initializes the state vector
 	private StateVector createInitialX() {
 		return new StateVector(STATE_VARS_OF_INTEREST, FEATURE_SIZE);
@@ -287,10 +251,9 @@ public class EKF {
 	}
 
 	// The measurement noise matrix
-	private Matrix createVRVMatrix(double distance) {
+	private Matrix createVRVMatrix() {
 		double[][] vrv = new double[2][2];
-		vrv[0][0] = distance * VRV_DISTANCE_VARIANCE;
-		vrv[1][1] = VRV_HEADING_NOISE;// Math.toRadians(2);
+		vrv[0][0] = vrv[1][1] = VRV_IMAGE_NOISE;
 		return new Matrix(vrv);
 	}
 

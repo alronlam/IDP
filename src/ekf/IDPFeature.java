@@ -1,5 +1,7 @@
 package ekf;
 
+import Jama.Matrix;
+
 public class IDPFeature {
 
 	private double x;
@@ -16,6 +18,15 @@ public class IDPFeature {
 		this.azimuth = azimuth;
 		this.elevation = elevation;
 		this.p = p;
+	}
+	
+	public IDPFeature(Matrix m) {
+		this.x = m.get(0,0);
+		this.y = m.get(1,0);
+		this.z = m.get(2,0);
+		this.azimuth = m.get(3,0);
+		this.elevation = m.get(4,0);
+		this.p = m.get(5,0);
 	}
 
 	public double getX() {
