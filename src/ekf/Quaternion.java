@@ -56,6 +56,7 @@ public class Quaternion {
 	}
 
 	public Quaternion times(Quaternion other) {
+		// this is probably wrong
 		return new Quaternion(x * other.x, y * other.y, z * other.z, r * other.r);
 	}
 

@@ -115,10 +115,11 @@ public class Helper {
 
 	public static Matrix setSubMatrixValues(Matrix parentMatrix, Matrix newValues, int startRow, int startCol) {
 
-		for (int i = startRow; i < newValues.getRowDimension(); i++)
-			for (int j = startCol; j < newValues.getColumnDimension(); j++)
-				parentMatrix.set(i, j, newValues.get(i - startRow, j - startCol));
-
+		for (int i = 0; i < newValues.getRowDimension(); i++) {
+			for (int j = 0; j < newValues.getColumnDimension(); j++) {
+				parentMatrix.set(startRow + i, startCol + j, newValues.get(i, j));
+			}
+		}
 		return parentMatrix;
 	}
 

@@ -7,8 +7,10 @@ import java.math.RoundingMode;
 import java.util.Random;
 
 import junit.framework.TestCase;
+import Jama.Matrix;
 import ekf.Camera;
 import ekf.EKF;
+import ekf.Helper;
 import ekf.PointTriple;
 
 public class EKFTests extends TestCase {
@@ -37,9 +39,21 @@ public class EKFTests extends TestCase {
 		ekf = null;
 	}
 
+	public void testHelperSetSubMatrixVals() {
+		Matrix A_Matrix = new Matrix(6, 6);
+
+		/* Initilize all the Identity sub-matrices */
+		Matrix _3x3Identity = Helper.createIdentityMatrix(3);
+		A_Matrix = Helper.setSubMatrixValues(A_Matrix, _3x3Identity, 0, 0);
+		A_Matrix = Helper.setSubMatrixValues(A_Matrix, _3x3Identity, 3, 3);
+
+		System.out.println(Helper.toStringDoubleArr(A_Matrix.getArray()));
+
+	}
+
 	public void testPredict() {
 
-		for (int i = 0; i < 5; i++) {
+		for (int i = 0; i < 1; i++) {
 			predict(ekf, true);
 		}
 	}
@@ -59,6 +73,7 @@ public class EKFTests extends TestCase {
 		if (log) {
 			System.out.println("After predicting with linear impulse " + vP + " and angular impulse " + wP + "\r\n");
 			System.out.println(ekf.getStateVector());
+			System.out.println(ekf.getCovarianceMatrix());
 		}
 	}
 
