@@ -19,7 +19,7 @@ public class StateVector {
 
 		X = new ArrayList<Double>();
 		for (int i = 0; i < stateVarsOfInterest; i++)
-			X.add(0.0);
+			X.add(Helper.EPS);
 	}
 
 	private StateVector() {

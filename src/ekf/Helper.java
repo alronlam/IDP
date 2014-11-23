@@ -6,6 +6,8 @@ import Jama.Matrix;
 
 public class Helper {
 
+	public static final double EPS = Math.pow(2, -52);
+
 	/*** Sets the list to contain the values in the sub-matrix specified ***/
 	public static void setArrayListValues(ArrayList<ArrayList<Double>> list, Matrix matrix, int startRow, int startCol) {
 		for (int i = startRow; i < matrix.getRowDimension(); i++)

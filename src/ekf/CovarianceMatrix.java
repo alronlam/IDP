@@ -10,6 +10,9 @@ public class CovarianceMatrix {
 	private int featureSize;
 	private int stateVarsOfInterest;
 
+	private static final double std_v_0 = 0.025;
+	private static final double std_w_0 = 0.025;
+
 	public CovarianceMatrix(int stateVarsOfInterest, int featureSize, double pDiagonalInitial) {
 		this.stateVarsOfInterest = stateVarsOfInterest;
 		this.featureSize = featureSize;
@@ -29,8 +32,14 @@ public class CovarianceMatrix {
 			for (int j = 0; j < stateVarsOfInterest; j++) {
 				if (i != j)
 					currRow.add(0.0);
-				else
-					currRow.add(pDiagonalInitial);
+				else {
+					if (i < 7)
+						currRow.add(Helper.EPS);
+					else if (i >= 7 && i < 10)
+						currRow.add(std_v_0 * std_v_0);
+					else if (i >= 10 && i < 13)
+						currRow.add(std_w_0 * std_w_0);
+				}
 			}
 			P.add(currRow);
 		}

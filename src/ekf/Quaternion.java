@@ -64,7 +64,8 @@ public class Quaternion {
 		newY = this.r * q1.y + q1.r * this.y - this.x * q1.z + this.z * q1.x;
 		newZ = this.r * q1.z + q1.r * this.z + this.x * q1.y - this.y * q1.x;
 
-		return new Quaternion(newX, newY, newZ, newR);
+		Quaternion product = new Quaternion(newX, newY, newZ, newR);
+		return product;
 	}
 
 	public String toString() {
