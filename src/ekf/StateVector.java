@@ -118,6 +118,13 @@ public class StateVector {
 
 		return new PointTriple(x, y, z);
 	}
+	
+	public IDPFeature getFeature(int index){
+		int startIndex = this.getStartingIndexInStateVector(index);
+		IDPFeature f = new IDPFeature(X.get(startIndex),X.get(startIndex+1),X.get(startIndex+2),X.get(startIndex+3),X.get(startIndex+4),X.get(startIndex+5));
+		
+		return f;
+	}
 
 	/*** Setters ***/
 	public void setXYZPosition(PointTriple newXYZ) {

@@ -7,7 +7,7 @@ import Jama.Matrix;
 public class FeatureInfo {
 	private int half_patch_size_when_initialized = 20;
 	private int half_patch_size_when_matching = 6;
-	private int init_frame;
+	//private int init_frame;
 	private int individually_compatible;
 	private int low_innovation_inlier;
 	private int high_innovation_inlier;
@@ -17,22 +17,21 @@ public class FeatureInfo {
 	public int times_predicted = 0;
 	public int times_measured = 0;
 	
-	private Matrix patch_when_initialized;
-	private Matrix patch_when_matching;
+	//private Matrix patch_when_initialized;
 	private Matrix r_wc_when_initialized;
 	private Matrix R_wc_when_initialized;
 	private Matrix uv_when_initialized;
 	private Matrix init_measurement;
 
+	public Matrix patch_when_matching;
 	public Matrix z, h, H, S, R;
 	
 	private IDPFeature yi;
 	
 	
-	public FeatureInfo(Matrix uv, Matrix im_k, Matrix X_RES, ArrayList<FeatureInfo> features_info, 
-			int step, IDPFeature newFeature) {
-		patch_when_initialized = im_k.getMatrix((int)uv.get(1,0)-half_patch_size_when_initialized, (int)uv.get(1,0) + half_patch_size_when_initialized,
-				(int)uv.get(0, 0) - half_patch_size_when_initialized, (int)uv.get(0, 0) + half_patch_size_when_initialized);
+	public FeatureInfo(Matrix uv, Matrix X_RES,	IDPFeature newFeature) {
+		//patch_when_initialized = im_k.getMatrix((int)uv.get(1,0)-half_patch_size_when_initialized, (int)uv.get(1,0) + half_patch_size_when_initialized,
+				//(int)uv.get(0, 0) - half_patch_size_when_initialized, (int)uv.get(0, 0) + half_patch_size_when_initialized);
 		
 		patch_when_matching = new Matrix(2 * half_patch_size_when_matching + 1, 2 * half_patch_size_when_matching + 1);
 
@@ -43,7 +42,7 @@ public class FeatureInfo {
 		
 		uv_when_initialized = uv.transpose();
 		
-		init_frame = step;
+		//init_frame = step;
 		
 		init_measurement = uv;
 		

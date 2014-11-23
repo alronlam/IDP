@@ -72,4 +72,15 @@ public class QuaternionHelper {
 				* ((deltaTime / 2.0) * Math.cos(omega * deltaTime / 2.0) - (1.0 / omega)
 						* Math.sin(omega * deltaTime / 2.0));
 	}
+	
+	public static Matrix qconj(Matrix q) {
+		double[][] out = new double[4][1];
+		
+		out[0][0] = q.get(0, 0);
+		out[1][0] = -q.get(1, 0);
+		out[2][0] = -q.get(2, 0);
+		out[3][0] = -q.get(3, 0);
+		
+		return new Matrix(out);
+	}
 }
